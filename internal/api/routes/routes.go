@@ -28,6 +28,9 @@ func SetupRouter() *gin.Engine {
 	patientRepo := repositories.NewPatientRepository(db)
 	patientHandler := handlers.NewPatientHandler(patientRepo)
 
+	notificactionRepo := repositories.NewNotificationRepository(db)
+	notificactionHandler := handlers.NewNotificationHandler(notificactionRepo)
+
 	// Swagger route
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
@@ -47,6 +50,13 @@ func SetupRouter() *gin.Engine {
 			patientsGroup.GET("/", patientHandler.GetPatients)
 			patientsGroup.GET("/:id", patientHandler.GetPatientByID)
 			patientsGroup.DELETE("/:id", patientHandler.DeletePatient)
+		}
+
+		notificationsGroup := v1.Group("/notifications")
+		{
+			notificationsGroup.GET("/:id", notificactionHandler.GetNotificationByUserID)
+			notificationsGroup.DELETE("/:id", notificactionHandler.DeleteNotification)
+			notificationsGroup.POST("/", notificactionHandler.CreateNotification)
 		}
 		//v1.POST("/books", userHandler.CreateBook)
 		//v1.PUT("/books/:id", userHandler.UpdateBook)

@@ -18,3 +18,11 @@ type Patient struct {
 	DateOfBirth string `json:"date_of_birth"`
 	Gender      string `json:"gender"`
 }
+
+type Notification struct {
+	NotificationId int    `json:"notification_id"`
+	UserId         int    `json:"user_id"`
+	Message        string `json:"message"`
+	Type           string `json:"type"`
+	SentAt         string `json:"sent_at"`
+}
