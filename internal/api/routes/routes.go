@@ -41,6 +41,7 @@ func SetupRouter() *gin.Engine {
 		{
 			usersGroup.GET("/", userHandler.GetUsers)
 			usersGroup.GET("/:id", userHandler.GetUserByID)
+			usersGroup.POST("/", userHandler.CreateUser)
 			usersGroup.DELETE("/:id", userHandler.DeleteUser)
 			//usersGroup.GET("/iin/:iin", userHandler.GetUserByIIN)
 		}
@@ -58,7 +59,7 @@ func SetupRouter() *gin.Engine {
 			notificationsGroup.DELETE("/:id", notificactionHandler.DeleteNotification)
 			notificationsGroup.POST("/", notificactionHandler.CreateNotification)
 		}
-		//v1.POST("/books", userHandler.CreateBook)
+
 		//v1.PUT("/books/:id", userHandler.UpdateBook)
 
 	}

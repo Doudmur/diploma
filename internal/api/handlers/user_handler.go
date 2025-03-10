@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"diploma/internal/models"
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -57,6 +59,68 @@ func (h *UserHandler) GetUserByID(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, user)
+}
+
+// CreateUser godoc
+// @Summary      Create a new user
+// @Description  Create a new user with the provided details
+// @Tags         users
+// @Accept       json
+// @Produce      json
+// @Param        user  body  models.UserRequest  true  "User request object"
+// @Success      201  {object}  models.UserRequest
+// @Failure      400  {object}  map[string]string
+// @Router       /users [post]
+func (h *UserHandler) CreateUser(c *gin.Context) {
+	var userRequest models.UserRequest
+	if err := c.ShouldBindJSON(&userRequest); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"Invalid request body. Error": err.Error()})
+		return
+	}
+
+	// Validate role
+	if userRequest.Role != "doctor" && userRequest.Role != "patient" {
+
+		c.JSON(http.StatusBadRequest, models.ErrorResponse{Message: "Invalid role"})
+		return
+	}
+
+	// Create User
+	err := h.repo.CreateUser(&userRequest)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "User not created"})
+		return
+	}
+
+	// Create doctor or patient based on role
+	if userRequest.Role == "patient" {
+		if userRequest.PatientDetails == nil {
+			c.JSON(http.StatusBadRequest, models.ErrorResponse{Message: "Patient details are required"})
+			return
+		}
+		userRequest.PatientDetails.UserId = userRequest.UserId
+		// Create patient
+		err = h.repo.CreatePatient(userRequest.PatientDetails)
+		if err != nil {
+			fmt.Printf("Error creating patient: %v. User ID: %d", err, userRequest.UserId)
+			c.JSON(http.StatusNotFound, gin.H{"error": "Patient not created"})
+			return
+		}
+	} else if userRequest.Role == "doctor" {
+		if userRequest.DoctorDetails == nil {
+			c.JSON(http.StatusBadRequest, models.ErrorResponse{Message: "Doctor details are required"})
+			return
+		}
+		userRequest.DoctorDetails.UserId = userRequest.UserId
+		// Create doctor
+		err = h.repo.CreateDoctor(userRequest.DoctorDetails)
+		if err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Doctor not created"})
+			return
+		}
+	}
+
+	c.JSON(http.StatusCreated, userRequest)
 }
 
 // DeleteUser godoc

@@ -56,11 +56,21 @@ func (r *UserRepository) DeleteUser(id int) error {
 	return err
 }
 
-//func (r *BookRepository) CreateBook(book *models.Book) error {
-//	err := r.db.QueryRow("INSERT INTO books (title, author) VALUES ($1, $2) RETURNING id", book.Title, book.Author).Scan(&book.ID)
-//	return err
-//}
-//
+func (r *UserRepository) CreateUser(user *models.UserRequest) error {
+	err := r.db.QueryRow("INSERT INTO public.user (first_name, last_name, email, phone_number, iin, role) VALUES ($1, $2, $3, $4, $5, $6) RETURNING user_id", user.FirstName, user.LastName, user.Email, user.PhoneNumber, user.Iin, user.Role).Scan(&user.UserId)
+	return err
+}
+
+func (r *UserRepository) CreatePatient(patient *models.PatientDetails) error {
+	err := r.db.QueryRow("INSERT INTO public.patient (user_id, date_of_birth, gender) VALUES ($1, $2, $3) RETURNING patient_id", patient.UserId, patient.DateOfBirth, patient.Gender).Scan(&patient.PatientId)
+	return err
+}
+
+func (r *UserRepository) CreateDoctor(doctor *models.DoctorDetails) error {
+	err := r.db.QueryRow("INSERT INTO public.doctor (user_id, specialization) VALUES ($1, $2) RETURNING doctor_id", doctor.UserId, doctor.Specialization).Scan(&doctor.DoctorId)
+	return err
+}
+
 //func (r *BookRepository) UpdateBook(book *models.Book) error {
 //	_, err := r.db.Exec("UPDATE books SET title = $1, author = $2 WHERE id = $3", book.Title, book.Author, book.ID)
 //	return err

@@ -1,0 +1,322 @@
+basePath: /api/v1
+definitions:
+  models.DoctorDetails:
+    properties:
+      doctor_id:
+        type: string
+      specialization:
+        type: string
+      user_id:
+        type: integer
+    type: object
+  models.Notification:
+    properties:
+      message:
+        type: string
+      notification_id:
+        type: integer
+      sent_at:
+        type: string
+      type:
+        type: string
+      user_id:
+        type: integer
+    type: object
+  models.Patient:
+    properties:
+      date_of_birth:
+        type: string
+      gender:
+        type: string
+      patient_id:
+        type: integer
+      user_id:
+        type: integer
+    type: object
+  models.PatientDetails:
+    properties:
+      date_of_birth:
+        type: string
+      gender:
+        type: string
+      patient_id:
+        type: string
+      user_id:
+        type: integer
+    type: object
+  models.User:
+    properties:
+      biometric_data_hash:
+        type: string
+      created_at:
+        type: string
+      email:
+        type: string
+      first_name:
+        type: string
+      iin:
+        type: string
+      last_name:
+        type: string
+      phone_number:
+        type: string
+      role:
+        type: string
+      user_id:
+        type: integer
+    type: object
+  models.UserRequest:
+    properties:
+      doctor_details:
+        $ref: '#/definitions/models.DoctorDetails'
+      email:
+        type: string
+      first_name:
+        type: string
+      iin:
+        type: string
+      last_name:
+        type: string
+      patient_details:
+        $ref: '#/definitions/models.PatientDetails'
+      phone_number:
+        type: string
+      role:
+        type: string
+      user_id:
+        type: integer
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: This is a REST API for managing medical organization app.
+  title: DiplomaAPI
+  version: "1.0"
+paths:
+  /notifications:
+    post:
+      consumes:
+      - application/json
+      description: Create a new notification with the provided details
+      parameters:
+      - description: Notification object
+        in: body
+        name: notification
+        required: true
+        schema:
+          $ref: '#/definitions/models.Notification'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.Notification'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Create a new notification
+      tags:
+      - notifications
+  /notifications/{id}:
+    delete:
+      description: Delete a notification by its ID
+      parameters:
+      - description: Notification ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Delete a notification
+      tags:
+      - notifications
+    get:
+      description: Fetch a notification by its UserID
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Notification'
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get a notification by UserID
+      tags:
+      - notifications
+  /patients:
+    get:
+      description: Fetch a list of all patients
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Patient'
+            type: array
+      summary: Get all patients
+      tags:
+      - patients
+  /patients/{id}:
+    delete:
+      description: Delete a patient by its ID
+      parameters:
+      - description: Patient ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Delete a patient
+      tags:
+      - patients
+    get:
+      description: Fetch a patient by its ID
+      parameters:
+      - description: Patient ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Patient'
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get a patient by ID
+      tags:
+      - patients
+  /users:
+    get:
+      description: Fetch a list of all users
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.User'
+            type: array
+      summary: Get all users
+      tags:
+      - users
+    post:
+      consumes:
+      - application/json
+      description: Create a new user with the provided details
+      parameters:
+      - description: User request object
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/models.UserRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.UserRequest'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Create a new user
+      tags:
+      - users
+  /users/{id}:
+    delete:
+      description: Delete a user by its ID
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Delete a user
+      tags:
+      - users
+    get:
+      description: Fetch a user by its ID
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.User'
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get a user by ID
+      tags:
+      - users
+swagger: "2.0"
