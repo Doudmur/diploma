@@ -10,6 +10,12 @@ type User struct {
 	Role              string `json:"role"`
 	BiometricDataHash string `json:"biometric_data_hash"`
 	CreatedAt         string `json:"created_at"`
+	Password          string `json:"password"`
+}
+
+type LoginRequest struct {
+	Iin      string `json:"iin"`
+	Password string `json:"password"`
 }
 
 type UserRequest struct {
@@ -20,6 +26,7 @@ type UserRequest struct {
 	PhoneNumber    string          `json:"phone_number"`
 	Iin            string          `json:"iin"`
 	Role           string          `json:"role"`
+	Password       string          `json:"password"`
 	PatientDetails *PatientDetails `json:"patient_details,omitempty"`
 	DoctorDetails  *DoctorDetails  `json:"doctor_details,omitempty"`
 }

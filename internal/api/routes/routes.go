@@ -2,6 +2,7 @@ package routes
 
 import (
 	"diploma/internal/api/handlers"
+	"diploma/internal/auth"
 	"diploma/internal/config"
 	"diploma/internal/repositories"
 	"github.com/gin-gonic/gin"
@@ -37,6 +38,12 @@ func SetupRouter() *gin.Engine {
 	// API routes
 	v1 := router.Group("/api/v1")
 	{
+		authGroup := v1.Group("/auth")
+		{
+			authGroup.POST("/register", userHandler.CreateUser)
+			authGroup.POST("/login", userHandler.Login)
+		}
+
 		usersGroup := v1.Group("/users")
 		{
 			usersGroup.GET("/", userHandler.GetUsers)
@@ -50,10 +57,10 @@ func SetupRouter() *gin.Engine {
 		{
 			patientsGroup.GET("/", patientHandler.GetPatients)
 			patientsGroup.GET("/:id", patientHandler.GetPatientByID)
-			patientsGroup.DELETE("/:id", patientHandler.DeletePatient)
 		}
 
 		notificationsGroup := v1.Group("/notifications")
+		notificationsGroup.Use(auth.AuthMiddleware())
 		{
 			notificationsGroup.GET("/:id", notificactionHandler.GetNotificationByUserID)
 			notificationsGroup.DELETE("/:id", notificactionHandler.DeleteNotification)

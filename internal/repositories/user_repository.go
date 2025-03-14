@@ -23,7 +23,7 @@ func (r *UserRepository) GetUsers() ([]models.User, error) {
 	var users []models.User
 	for rows.Next() {
 		var user models.User
-		if err := rows.Scan(&user.UserId, &user.FirstName, &user.LastName, &user.Email, &user.PhoneNumber, &user.Iin, &user.Role, &user.BiometricDataHash, &user.CreatedAt); err != nil {
+		if err := rows.Scan(&user.UserId, &user.FirstName, &user.LastName, &user.Email, &user.PhoneNumber, &user.Iin, &user.Role, &user.BiometricDataHash, &user.CreatedAt, &user.Password); err != nil {
 			return nil, err
 		}
 		users = append(users, user)
@@ -35,17 +35,17 @@ func (r *UserRepository) GetUserByID(id int) (*models.User, error) {
 	row := r.db.QueryRow("SELECT * FROM public.user WHERE user_id=$1", id)
 
 	var user models.User
-	if err := row.Scan(&user.UserId, &user.FirstName, &user.LastName, &user.Email, &user.PhoneNumber, &user.Iin, &user.Role, &user.BiometricDataHash, &user.CreatedAt); err != nil {
+	if err := row.Scan(&user.UserId, &user.FirstName, &user.LastName, &user.Email, &user.PhoneNumber, &user.Iin, &user.Role, &user.BiometricDataHash, &user.CreatedAt, &user.Password); err != nil {
 		return nil, err
 	}
 	return &user, nil
 }
 
-func (r *UserRepository) GetUserByIin(iin int) (*models.User, error) {
+func (r *UserRepository) GetUserByIin(iin string) (*models.User, error) {
 	row := r.db.QueryRow("SELECT * FROM public.user WHERE iin=$1", iin)
 
 	var user models.User
-	if err := row.Scan(&user.UserId, &user.FirstName, &user.LastName, &user.Email, &user.PhoneNumber, &user.Iin, &user.Role, &user.BiometricDataHash, &user.CreatedAt); err != nil {
+	if err := row.Scan(&user.UserId, &user.FirstName, &user.LastName, &user.Email, &user.PhoneNumber, &user.Iin, &user.Role, &user.BiometricDataHash, &user.CreatedAt, &user.Password); err != nil {
 		return nil, err
 	}
 	return &user, nil
@@ -57,7 +57,7 @@ func (r *UserRepository) DeleteUser(id int) error {
 }
 
 func (r *UserRepository) CreateUser(user *models.UserRequest) error {
-	err := r.db.QueryRow("INSERT INTO public.user (first_name, last_name, email, phone_number, iin, role) VALUES ($1, $2, $3, $4, $5, $6) RETURNING user_id", user.FirstName, user.LastName, user.Email, user.PhoneNumber, user.Iin, user.Role).Scan(&user.UserId)
+	err := r.db.QueryRow("INSERT INTO public.user (first_name, last_name, email, phone_number, iin, role, password) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING user_id", user.FirstName, user.LastName, user.Email, user.PhoneNumber, user.Iin, user.Role, user.Password).Scan(&user.UserId)
 	return err
 }
 
@@ -68,6 +68,16 @@ func (r *UserRepository) CreatePatient(patient *models.PatientDetails) error {
 
 func (r *UserRepository) CreateDoctor(doctor *models.DoctorDetails) error {
 	err := r.db.QueryRow("INSERT INTO public.doctor (user_id, specialization) VALUES ($1, $2) RETURNING doctor_id", doctor.UserId, doctor.Specialization).Scan(&doctor.DoctorId)
+	return err
+}
+
+func (r *UserRepository) DeletePatient(id int) error {
+	_, err := r.db.Exec("DELETE FROM public.patient WHERE user_id = $1", id)
+	return err
+}
+
+func (r *UserRepository) DeleteDoctor(id int) error {
+	_, err := r.db.Exec("DELETE FROM public.doctor WHERE user_id = $1", id)
 	return err
 }
 

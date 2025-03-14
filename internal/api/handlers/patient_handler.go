@@ -59,29 +59,6 @@ func (h *PatientHandler) GetPatientByID(c *gin.Context) {
 	c.JSON(http.StatusOK, patient)
 }
 
-// DeletePatient godoc
-// @Summary      Delete a patient
-// @Description  Delete a patient by its ID
-// @Tags         patients
-// @Produce      json
-// @Param        id  path  int  true  "Patient ID"
-// @Success      204
-// @Failure      404  {object}  map[string]string
-// @Router       /patients/{id} [delete]
-func (h *PatientHandler) DeletePatient(c *gin.Context) {
-	id, err := strconv.Atoi(c.Param("id"))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID"})
-		return
-	}
-
-	if err := h.repo.DeletePatient(id); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-	c.Status(http.StatusNoContent)
-}
-
 //// GetUserByIIN godoc
 //// @Summary      Get a user by IIN
 //// @Description  Fetch a user by its IIN

@@ -1,16 +1,13 @@
 package handlers
 
 import (
+	"diploma/internal/auth"
 	"diploma/internal/models"
+	"diploma/internal/repositories"
 	"fmt"
+	"github.com/gin-gonic/gin"
 	"net/http"
 	"strconv"
-
-	//"strconv"
-	//
-	//"diploma/internal/models"
-	"diploma/internal/repositories"
-	"github.com/gin-gonic/gin"
 )
 
 type UserHandler struct {
@@ -64,13 +61,13 @@ func (h *UserHandler) GetUserByID(c *gin.Context) {
 // CreateUser godoc
 // @Summary      Create a new user
 // @Description  Create a new user with the provided details
-// @Tags         users
+// @Tags         auth
 // @Accept       json
 // @Produce      json
 // @Param        user  body  models.UserRequest  true  "User request object"
 // @Success      201  {object}  models.UserRequest
 // @Failure      400  {object}  map[string]string
-// @Router       /users [post]
+// @Router       /auth/register [post]
 func (h *UserHandler) CreateUser(c *gin.Context) {
 	var userRequest models.UserRequest
 	if err := c.ShouldBindJSON(&userRequest); err != nil {
@@ -85,8 +82,16 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
 		return
 	}
 
+	// Hash password
+	hashedPassword, err := auth.HashPassword(userRequest.Password)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to hash password"})
+		return
+	}
+	userRequest.Password = hashedPassword
+
 	// Create User
-	err := h.repo.CreateUser(&userRequest)
+	err = h.repo.CreateUser(&userRequest)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "User not created"})
 		return
@@ -123,6 +128,47 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
 	c.JSON(http.StatusCreated, userRequest)
 }
 
+// Login godoc
+// @Summary      Authentication
+// @Description  Authenticate user
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        user  body  models.LoginRequest  true  "Login request object"
+// @Success      201  {object}  models.LoginRequest
+// @Failure      400  {object}  map[string]string
+// @Router       /auth/login [post]
+func (h *UserHandler) Login(c *gin.Context) {
+	var loginRequest models.LoginRequest
+	if err := c.ShouldBindJSON(&loginRequest); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Find user by iin
+	user, err := h.repo.GetUserByIin(loginRequest.Iin)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not found"})
+		return
+	}
+
+	// Verify password
+	if err := auth.VerifyPassword(user.Password, loginRequest.Password); err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
+		return
+	}
+
+	// Generate JWT token
+	var u = uint(user.UserId)
+	token, err := auth.GenerateToken(u)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate token"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"token": token})
+}
+
 // DeleteUser godoc
 // @Summary      Delete a user
 // @Description  Delete a user by its ID
@@ -139,8 +185,25 @@ func (h *UserHandler) DeleteUser(c *gin.Context) {
 		return
 	}
 
+	user, err := h.repo.GetUserByID(id)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		return
+	}
+
+	switch user.Role {
+	case "patient":
+		if err := h.repo.DeletePatient(id); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"Error UserHandler - DeleteUser - DeletePatient": err.Error()})
+		}
+	case "doctor":
+		if err := h.repo.DeleteDoctor(id); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"Error UserHandler - DeleteUser - DeleteDoctor": err.Error()})
+		}
+	}
+
 	if err := h.repo.DeleteUser(id); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"Error UserHandler - DeleteUser - DeleteUser": err.Error()})
 		return
 	}
 	c.Status(http.StatusNoContent)

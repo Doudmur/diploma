@@ -22,6 +22,7 @@ func NewNotificationHandler(repo *repositories.NotificationRepository) *Notifica
 // @Tags         notifications
 // @Produce      json
 // @Param        id  path  int  true  "User ID"
+// @Param 		 Authorization header string true "Bearer"
 // @Success      200  {object}  models.Notification
 // @Failure      404  {object}  map[string]string
 // @Router       /notifications/{id} [get]
@@ -46,6 +47,7 @@ func (h *NotificationHandler) GetNotificationByUserID(c *gin.Context) {
 // @Tags         notifications
 // @Produce      json
 // @Param        id  path  int  true  "Notification ID"
+// @Param 		 Authorization header string true "Bearer"
 // @Success      204
 // @Failure      404  {object}  map[string]string
 // @Router       /notifications/{id} [delete]
@@ -70,6 +72,7 @@ func (h *NotificationHandler) DeleteNotification(c *gin.Context) {
 // @Accept       json
 // @Produce      json
 // @Param        notification  body  models.Notification  true  "Notification object"
+// @Param 		 Authorization header string true "Bearer"
 // @Success      201  {object}  models.Notification
 // @Failure      400  {object}  map[string]string
 // @Router       /notifications [post]
