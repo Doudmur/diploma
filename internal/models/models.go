@@ -14,7 +14,8 @@ type User struct {
 }
 
 type LoginRequest struct {
-	Iin      string `json:"iin"`
+	Iin string `json:"iin"`
+
 	Password string `json:"password"`
 }
 

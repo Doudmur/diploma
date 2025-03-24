@@ -9,16 +9,18 @@ var jwtSecret = []byte("sibsila") // Replace with a secure secret key
 
 // Claims represents the JWT claims
 type Claims struct {
-	UserID uint `json:"user_id"`
+	UserID uint   `json:"user_id"`
+	Role   string `json:"role"`
 	jwt.RegisteredClaims
 }
 
 // GenerateToken generates a new JWT token for a user
-func GenerateToken(userID uint) (string, error) {
+func GenerateToken(userID uint, role string) (string, error) {
 	claims := &Claims{
 		UserID: userID,
+		Role:   role,
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)), // Token expires in 24 hours
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(30 * time.Minute)), // Token expires in 24 hours
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 			Issuer:    "medicine app",
 		},

@@ -51,6 +51,16 @@ func (r *UserRepository) GetUserByIin(iin string) (*models.User, error) {
 	return &user, nil
 }
 
+func (r *UserRepository) GetUserByEmail(email string) (*models.User, error) {
+	row := r.db.QueryRow("SELECT * FROM public.user WHERE email=$1", email)
+
+	var user models.User
+	if err := row.Scan(&user.UserId, &user.FirstName, &user.LastName, &user.Email, &user.PhoneNumber, &user.Iin, &user.Role, &user.BiometricDataHash, &user.CreatedAt, &user.Password); err != nil {
+		return nil, err
+	}
+	return &user, nil
+}
+
 func (r *UserRepository) DeleteUser(id int) error {
 	_, err := r.db.Exec("DELETE FROM public.user WHERE user_id = $1", id)
 	return err

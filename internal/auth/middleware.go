@@ -22,6 +22,7 @@ func AuthMiddleware() gin.HandlerFunc {
 
 		// Set user ID in context for use in handlers
 		c.Set("user_id", claims.UserID)
+		c.Set("role", claims.Role)
 		c.Next()
 	}
 }

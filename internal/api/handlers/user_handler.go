@@ -4,6 +4,7 @@ import (
 	"diploma/internal/auth"
 	"diploma/internal/models"
 	"diploma/internal/repositories"
+	"diploma/internal/scripts"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"net/http"
@@ -82,8 +83,19 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
 		return
 	}
 
+	// Generate OTP
+	otp := scripts.GenerateOTP()
+
+	// Send OTP to email
+	subject := "Generated password to login in MedicineApp"
+	body := "Your password generated to first login: " + otp
+	err := scripts.SendMail(userRequest.Email, subject, body)
+	if err != nil {
+		return
+	}
+
 	// Hash password
-	hashedPassword, err := auth.HashPassword(userRequest.Password)
+	hashedPassword, err := auth.HashPassword(otp)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to hash password"})
 		return
@@ -160,7 +172,7 @@ func (h *UserHandler) Login(c *gin.Context) {
 
 	// Generate JWT token
 	var u = uint(user.UserId)
-	token, err := auth.GenerateToken(u)
+	token, err := auth.GenerateToken(u, user.Role)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate token"})
 		return

@@ -67,8 +67,6 @@ func SetupRouter() *gin.Engine {
 			notificationsGroup.POST("/", notificactionHandler.CreateNotification)
 		}
 
-		//v1.PUT("/books/:id", userHandler.UpdateBook)
-
 	}
 
 	return router
