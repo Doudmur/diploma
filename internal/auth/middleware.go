@@ -26,3 +26,32 @@ func AuthMiddleware() gin.HandlerFunc {
 		c.Next()
 	}
 }
+
+func RoleMiddleware(allowedRoles []string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// Assuming user role is stored in context after AuthMiddleware
+		userRole, exists := c.Get("role")
+		if !exists {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Role not found in context"})
+			c.Abort()
+			return
+		}
+
+		// Check if user's role is in the allowed roles
+		hasPermission := false
+		for _, role := range allowedRoles {
+			if userRole == role {
+				hasPermission = true
+				break
+			}
+		}
+
+		if !hasPermission {
+			c.JSON(http.StatusForbidden, gin.H{"error": "Insufficient permissions"})
+			c.Abort()
+			return
+		}
+
+		c.Next()
+	}
+}

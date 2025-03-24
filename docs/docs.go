@@ -298,6 +298,42 @@ const docTemplate = `{
             }
         },
         "/records": {
+            "get": {
+                "description": "Fetch a record by its UserID",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "medical records"
+                ],
+                "summary": "Get a record by UserID through claim",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.Record"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
             "post": {
                 "description": "Create a new record with the provided details",
                 "consumes": [
@@ -307,7 +343,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Medical Records"
+                    "medical records"
                 ],
                 "summary": "Create a new record",
                 "parameters": [
@@ -347,21 +383,21 @@ const docTemplate = `{
                 }
             }
         },
-        "/records/{id}": {
+        "/records/{iin}": {
             "get": {
-                "description": "Fetch a record by its UserID",
+                "description": "Fetch a record by its IIN",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "Medical Records"
+                    "medical records"
                 ],
-                "summary": "Get a record by UserID",
+                "summary": "Get a record by IIN",
                 "parameters": [
                     {
-                        "type": "integer",
-                        "description": "User ID",
-                        "name": "id",
+                        "type": "string",
+                        "description": "IIN",
+                        "name": "iin",
                         "in": "path",
                         "required": true
                     },

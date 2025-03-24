@@ -3,9 +3,9 @@ package handlers
 import (
 	"diploma/internal/models"
 	"diploma/internal/repositories"
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"net/http"
-	"strconv"
 )
 
 type RecordHandler struct {
@@ -16,24 +16,44 @@ func NewRecordHandler(repo *repositories.RecordRepository) *RecordHandler {
 	return &RecordHandler{repo: repo}
 }
 
-// GetRecordByUserID godoc
-// @Summary      Get a record by UserID
-// @Description  Fetch a record by its UserID
-// @Tags         Medical Records
+// GetRecordByIIN godoc
+// @Summary      Get a record by IIN
+// @Description  Fetch a record by its IIN
+// @Tags         medical records
 // @Produce      json
-// @Param        id  path  int  true  "User ID"
+// @Param        iin  path  string  true  "IIN"
 // @Param 		 Authorization header string true "Bearer"
 // @Success      200  {object}  models.Record
 // @Failure      404  {object}  map[string]string
-// @Router       /records/{id} [get]
-func (h *RecordHandler) GetRecordByUserID(c *gin.Context) {
-	id, err := strconv.Atoi(c.Param("id"))
+// @Router       /records/{iin} [get]
+func (h *RecordHandler) GetRecordByIIN(c *gin.Context) {
+	iin := c.Param("iin")
+	record, err := h.repo.GetRecordByIIN(iin)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "Record not found"})
 		return
 	}
+	c.JSON(http.StatusOK, record)
+}
 
-	record, err := h.repo.GetRecordByUserID(id)
+// GetRecordByClaim godoc
+// @Summary      Get a record by UserID through claim
+// @Description  Fetch a record by its UserID
+// @Tags         medical records
+// @Produce      json
+// @Param 		 Authorization header string true "Bearer"
+// @Success      200  {object}  models.Record
+// @Failure      404  {object}  map[string]string
+// @Router       /records [get]
+func (h *RecordHandler) GetRecordByClaim(c *gin.Context) {
+	userID := c.GetUint("user_id")
+	//if !exists {
+	//	c.JSON(http.StatusUnauthorized, gin.H{"error": "ID not found in context"})
+	//	c.Abort()
+	//	return
+	//}
+	fmt.Print(userID)
+	record, err := h.repo.GetRecordByPatientID(int(userID))
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Record not found"})
 		return
@@ -44,7 +64,7 @@ func (h *RecordHandler) GetRecordByUserID(c *gin.Context) {
 // CreateRecord godoc
 // @Summary      Create a new record
 // @Description  Create a new record with the provided details
-// @Tags         Medical Records
+// @Tags         medical records
 // @Accept       json
 // @Produce      json
 // @Param        record  body  models.Record  true  "Record object"

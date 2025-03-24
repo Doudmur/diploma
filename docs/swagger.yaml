@@ -308,6 +308,30 @@ paths:
       tags:
       - patients
   /records:
+    get:
+      description: Fetch a record by its UserID
+      parameters:
+      - description: Bearer
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Record'
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get a record by UserID through claim
+      tags:
+      - medical records
     post:
       consumes:
       - application/json
@@ -339,16 +363,16 @@ paths:
             type: object
       summary: Create a new record
       tags:
-      - Medical Records
-  /records/{id}:
+      - medical records
+  /records/{iin}:
     get:
-      description: Fetch a record by its UserID
+      description: Fetch a record by its IIN
       parameters:
-      - description: User ID
+      - description: IIN
         in: path
-        name: id
+        name: iin
         required: true
-        type: integer
+        type: string
       - description: Bearer
         in: header
         name: Authorization
@@ -367,9 +391,9 @@ paths:
             additionalProperties:
               type: string
             type: object
-      summary: Get a record by UserID
+      summary: Get a record by IIN
       tags:
-      - Medical Records
+      - medical records
   /users:
     get:
       description: Fetch a list of all users

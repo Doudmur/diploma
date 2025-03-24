@@ -70,9 +70,11 @@ func SetupRouter() *gin.Engine {
 		}
 
 		recordsGroup := v1.Group("/records")
+		recordsGroup.Use(auth.AuthMiddleware())
 		{
-			recordsGroup.GET("/:id", recordHandler.GetRecordByUserID)
-			recordsGroup.POST("/", recordHandler.CreateRecord)
+			recordsGroup.GET("/", auth.RoleMiddleware([]string{"patient"}), recordHandler.GetRecordByClaim)
+			recordsGroup.GET("/:iin", auth.RoleMiddleware([]string{"doctor"}), recordHandler.GetRecordByIIN)
+			recordsGroup.POST("/", auth.RoleMiddleware([]string{"doctor"}), recordHandler.CreateRecord)
 		}
 
 	}
