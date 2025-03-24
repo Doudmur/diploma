@@ -72,6 +72,16 @@ type Notification struct {
 	SentAt         string `json:"sent_at"`
 }
 
+type Record struct {
+	RecordId      int    `json:"record_id"`
+	PatientId     int    `json:"patient_id"`
+	DoctorId      int    `json:"doctor_id"`
+	Diagnosis     string `json:"diagnosis"`
+	TreatmentPlan string `json:"treatment_plan"`
+	TestResult    string `json:"test_result"`
+	CreatedAt     string `json:"created_at"`
+}
+
 // ErrorResponse represents an error response
 type ErrorResponse struct {
 	Message string `json:"message" example:"Bad request"`

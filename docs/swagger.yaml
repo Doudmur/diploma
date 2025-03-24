@@ -51,6 +51,23 @@ definitions:
       user_id:
         type: integer
     type: object
+  models.Record:
+    properties:
+      created_at:
+        type: string
+      diagnosis:
+        type: string
+      doctor_id:
+        type: integer
+      patient_id:
+        type: integer
+      record_id:
+        type: integer
+      test_result:
+        type: string
+      treatment_plan:
+        type: string
+    type: object
   models.User:
     properties:
       biometric_data_hash:
@@ -290,6 +307,69 @@ paths:
       summary: Get a patient by ID
       tags:
       - patients
+  /records:
+    post:
+      consumes:
+      - application/json
+      description: Create a new record with the provided details
+      parameters:
+      - description: Record object
+        in: body
+        name: record
+        required: true
+        schema:
+          $ref: '#/definitions/models.Record'
+      - description: Bearer
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.Record'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Create a new record
+      tags:
+      - Medical Records
+  /records/{id}:
+    get:
+      description: Fetch a record by its UserID
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Bearer
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Record'
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get a record by UserID
+      tags:
+      - Medical Records
   /users:
     get:
       description: Fetch a list of all users

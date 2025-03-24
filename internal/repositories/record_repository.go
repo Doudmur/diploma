@@ -5,30 +5,25 @@ import (
 	"diploma/internal/models"
 )
 
-type NotificationRepository struct {
+type RecordRepository struct {
 	db *sql.DB
 }
 
-func NewNotificationRepository(db *sql.DB) *NotificationRepository {
-	return &NotificationRepository{db: db}
+func NewRecordRepository(db *sql.DB) *RecordRepository {
+	return &RecordRepository{db: db}
 }
 
-func (r *NotificationRepository) GetNotificationByUserID(id int) (*models.Notification, error) {
-	row := r.db.QueryRow("SELECT * FROM public.notification WHERE user_id=$1", id)
+func (r *RecordRepository) GetRecordByUserID(patientId int) (*models.Record, error) {
+	row := r.db.QueryRow("SELECT * FROM public.medical_record WHERE patient_id=$1", patientId)
 
-	var notification models.Notification
-	if err := row.Scan(&notification.NotificationId, &notification.UserId, &notification.Message, &notification.Type, &notification.SentAt); err != nil {
+	var record models.Record
+	if err := row.Scan(&record.RecordId, &record.PatientId, &record.DoctorId, &record.Diagnosis, &record.TreatmentPlan, &record.TestResult, &record.CreatedAt); err != nil {
 		return nil, err
 	}
-	return &notification, nil
+	return &record, nil
 }
 
-func (r *NotificationRepository) CreateNotification(notification *models.Notification) error {
-	err := r.db.QueryRow("INSERT INTO notification(user_id, message, type) VALUES ($1, $2, $3) RETURNING user_id", notification.UserId, notification.Message, notification.Type).Scan(&notification.NotificationId)
-	return err
-}
-
-func (r *NotificationRepository) DeleteNotification(id int) error {
-	_, err := r.db.Exec("DELETE FROM public.notification WHERE notification_id = $1", id)
+func (r *RecordRepository) CreateRecord(record *models.Record) error {
+	err := r.db.QueryRow("INSERT INTO public.medical_record(patient_id, doctor_id, diagnosis, treatment_plan, test_result) VALUES ($1, $2, $3, $4, $5) RETURNING record_id", record.PatientId, record.DoctorId, record.Diagnosis, record.TreatmentPlan, record.TestResult).Scan(&record.RecordId)
 	return err
 }
