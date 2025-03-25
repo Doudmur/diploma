@@ -75,11 +75,20 @@ type Notification struct {
 type Record struct {
 	RecordId      int    `json:"record_id"`
 	PatientId     int    `json:"patient_id"`
+	Iin           string `json:"iin"`
 	DoctorId      int    `json:"doctor_id"`
 	Diagnosis     string `json:"diagnosis"`
 	TreatmentPlan string `json:"treatment_plan"`
 	TestResult    string `json:"test_result"`
 	CreatedAt     string `json:"created_at"`
+}
+
+type AccessLog struct {
+	LogId      int    `json:"log_id"`
+	DoctorId   int    `json:"doctor_id"`
+	RecordId   int    `json:"record_id"`
+	AccessType string `json:"access_type"`
+	AccessDate string `json:"access_date"`
 }
 
 // ErrorResponse represents an error response

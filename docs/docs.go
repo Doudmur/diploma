@@ -615,6 +615,9 @@ const docTemplate = `{
                 "doctor_id": {
                     "type": "integer"
                 },
+                "iin": {
+                    "type": "string"
+                },
                 "patient_id": {
                     "type": "integer"
                 },

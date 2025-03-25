@@ -29,11 +29,11 @@ func SetupRouter() *gin.Engine {
 	patientRepo := repositories.NewPatientRepository(db)
 	patientHandler := handlers.NewPatientHandler(patientRepo)
 
-	notificationRepo := repositories.NewNotificationRepository(db)
-	notificationHandler := handlers.NewNotificationHandler(notificationRepo)
+	//notificationRepo := repositories.NewNotificationRepository(db)
+	//notificationHandler := handlers.NewNotificationHandler(notificationRepo)
 
 	recordRepo := repositories.NewRecordRepository(db)
-	recordHandler := handlers.NewRecordHandler(recordRepo)
+	recordHandler := handlers.NewRecordHandler(recordRepo, userRepo, patientRepo)
 
 	// Swagger route
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
@@ -61,13 +61,13 @@ func SetupRouter() *gin.Engine {
 			patientsGroup.GET("/:id", patientHandler.GetPatientByID)
 		}
 
-		notificationsGroup := v1.Group("/notifications")
-		notificationsGroup.Use(auth.AuthMiddleware())
-		{
-			notificationsGroup.GET("/:id", notificationHandler.GetNotificationByUserID)
-			notificationsGroup.DELETE("/:id", notificationHandler.DeleteNotification)
-			notificationsGroup.POST("/", notificationHandler.CreateNotification)
-		}
+		//notificationsGroup := v1.Group("/notifications")
+		//notificationsGroup.Use(auth.AuthMiddleware())
+		//{
+		//	notificationsGroup.GET("/:id", notificationHandler.GetNotificationByUserID)
+		//	notificationsGroup.DELETE("/:id", notificationHandler.DeleteNotification)
+		//	notificationsGroup.POST("/", notificationHandler.CreateNotification)
+		//}
 
 		recordsGroup := v1.Group("/records")
 		recordsGroup.Use(auth.AuthMiddleware())

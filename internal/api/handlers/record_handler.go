@@ -6,14 +6,17 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"net/http"
+	"strconv"
 )
 
 type RecordHandler struct {
-	repo *repositories.RecordRepository
+	RecordRepo  *repositories.RecordRepository
+	UserRepo    *repositories.UserRepository
+	PatientRepo *repositories.PatientRepository
 }
 
-func NewRecordHandler(repo *repositories.RecordRepository) *RecordHandler {
-	return &RecordHandler{repo: repo}
+func NewRecordHandler(recordRepo *repositories.RecordRepository, userRepo *repositories.UserRepository, patientRepo *repositories.PatientRepository) *RecordHandler {
+	return &RecordHandler{RecordRepo: recordRepo, UserRepo: userRepo, PatientRepo: patientRepo}
 }
 
 // GetRecordByIIN godoc
@@ -28,7 +31,7 @@ func NewRecordHandler(repo *repositories.RecordRepository) *RecordHandler {
 // @Router       /records/{iin} [get]
 func (h *RecordHandler) GetRecordByIIN(c *gin.Context) {
 	iin := c.Param("iin")
-	record, err := h.repo.GetRecordByIIN(iin)
+	record, err := h.RecordRepo.GetRecordByIIN(iin)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Record not found"})
 		return
@@ -47,13 +50,8 @@ func (h *RecordHandler) GetRecordByIIN(c *gin.Context) {
 // @Router       /records [get]
 func (h *RecordHandler) GetRecordByClaim(c *gin.Context) {
 	userID := c.GetUint("user_id")
-	//if !exists {
-	//	c.JSON(http.StatusUnauthorized, gin.H{"error": "ID not found in context"})
-	//	c.Abort()
-	//	return
-	//}
 	fmt.Print(userID)
-	record, err := h.repo.GetRecordByPatientID(int(userID))
+	record, err := h.RecordRepo.GetRecordByPatientID(int(userID))
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Record not found"})
 		return
@@ -78,10 +76,42 @@ func (h *RecordHandler) CreateRecord(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	userId := c.GetUint("user_id")
 
-	if err := h.repo.CreateRecord(&record); err != nil {
+	//Get user by iin
+	user, err := h.UserRepo.GetUserByIin(record.Iin)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Record not found"})
+	}
+
+	// Get patient by userId
+	patient, err := h.PatientRepo.GetPatientByUserID(user.UserId)
+
+	// Get doctor by userId
+	doctor, err := h.UserRepo.GetDoctorByUserId(strconv.Itoa(int(userId)))
+
+	record.PatientId = patient.PatientId
+	record.DoctorId = doctor.DoctorId
+
+	fmt.Print(record.PatientId, record.DoctorId)
+
+	// Create record
+	if err := h.RecordRepo.CreateRecord(&record); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+
+	var accessLog = models.AccessLog{
+		DoctorId:   record.DoctorId,
+		RecordId:   record.RecordId,
+		AccessType: "CreateRecord",
+	}
+
+	// Create access log
+	if err := h.RecordRepo.CreateAccessLog(&accessLog); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
 	c.JSON(http.StatusCreated, record)
 }

@@ -51,3 +51,8 @@ func (r *RecordRepository) CreateRecord(record *models.Record) error {
 	err := r.db.QueryRow("INSERT INTO public.medical_record(patient_id, doctor_id, diagnosis, treatment_plan, test_result) VALUES ($1, $2, $3, $4, $5) RETURNING record_id", record.PatientId, record.DoctorId, record.Diagnosis, record.TreatmentPlan, record.TestResult).Scan(&record.RecordId)
 	return err
 }
+
+func (r *RecordRepository) CreateAccessLog(accessLog *models.AccessLog) error {
+	err := r.db.QueryRow("INSERT INTO access_log(doctor_id, record_id, access_type) VALUES ($1, $2, $3) RETURNING log_id", accessLog.DoctorId, accessLog.RecordId, accessLog.AccessType).Scan(&accessLog.LogId)
+	return err
+}

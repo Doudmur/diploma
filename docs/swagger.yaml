@@ -59,6 +59,8 @@ definitions:
         type: string
       doctor_id:
         type: integer
+      iin:
+        type: string
       patient_id:
         type: integer
       record_id:
