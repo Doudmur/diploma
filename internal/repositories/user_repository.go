@@ -77,7 +77,7 @@ func (r *UserRepository) DeleteUser(id int) error {
 }
 
 func (r *UserRepository) CreateUser(user *models.UserRequest) error {
-	err := r.db.QueryRow("INSERT INTO public.user (first_name, last_name, email, phone_number, iin, role, password) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING user_id", user.FirstName, user.LastName, user.Email, user.PhoneNumber, user.Iin, user.Role, user.Password).Scan(&user.UserId)
+	err := r.db.QueryRow("INSERT INTO public.user (first_name, last_name, email, phone_number, iin, role, password) VALUES ($1, $2, $3, $4, $5, $6, $7)", user.FirstName, user.LastName, user.Email, user.PhoneNumber, user.Iin, user.Role, user.Password).Scan(&user.UserId)
 	return err
 }
 
@@ -98,6 +98,11 @@ func (r *UserRepository) DeletePatient(id int) error {
 
 func (r *UserRepository) DeleteDoctor(id int) error {
 	_, err := r.db.Exec("DELETE FROM public.doctor WHERE user_id = $1", id)
+	return err
+}
+
+func (r *UserRepository) UpdatePassword(iin string, password string) error {
+	_, err := r.db.Exec("UPDATE public.user SET password = $1 WHERE iin = $2", password, iin)
 	return err
 }
 

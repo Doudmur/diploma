@@ -76,6 +76,18 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
 		return
 	}
 
+	// Check if user exists
+	if user, _ := h.repo.GetUserByIin(userRequest.Iin); user != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "User with this IIN already exists"})
+		return
+	}
+
+	// Check if user exists
+	if user, _ := h.repo.GetUserByEmail(userRequest.Email); user != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "User with this email already exists"})
+		return
+	}
+
 	// Validate role
 	if userRequest.Role != "doctor" && userRequest.Role != "patient" {
 
@@ -179,6 +191,64 @@ func (h *UserHandler) Login(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"token": token})
+}
+
+// ChangePassword godoc
+// @Summary      Change password
+// @Description  Change password for user by IIN
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        user  body  models.ChangePasswordRequest  true  "Change password request object"
+// @Success      201  {object}  models.ChangePasswordRequest
+// @Failure      400  {object}  map[string]string
+// @Router       /auth/change-password [post]
+func (h *UserHandler) ChangePassword(c *gin.Context) {
+	var ChangePasswordRequest models.ChangePasswordRequest
+	if err := c.ShouldBindJSON(&ChangePasswordRequest); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Find user by iin
+	user, err := h.repo.GetUserByIin(ChangePasswordRequest.Iin)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not found"})
+		return
+	}
+
+	// Verify password
+	if err := auth.VerifyPassword(user.Password, ChangePasswordRequest.OldPassword); err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
+		return
+	}
+
+	// Verify new password equality
+	if ChangePasswordRequest.NewPassword != ChangePasswordRequest.VerifyPassword {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "New password and confirmation do not match"})
+		return
+	}
+
+	// Check complexity
+	if len(ChangePasswordRequest.NewPassword) < 8 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Too short password"})
+		return
+	}
+
+	// Hash password
+	hashedPassword, err := auth.HashPassword(ChangePasswordRequest.NewPassword)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to hash password"})
+		return
+	}
+	ChangePasswordRequest.NewPassword = hashedPassword
+
+	err = h.repo.UpdatePassword(ChangePasswordRequest.Iin, hashedPassword)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to change password"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"Status": "Password successfully changed"})
 }
 
 // DeleteUser godoc

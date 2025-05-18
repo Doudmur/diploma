@@ -29,6 +29,9 @@ func SetupRouter() *gin.Engine {
 	patientRepo := repositories.NewPatientRepository(db)
 	patientHandler := handlers.NewPatientHandler(patientRepo)
 
+	appointmentRepo := repositories.NewAppointmentRepository(db)
+	appointmentHandler := handlers.NewAppointmentHandler(appointmentRepo, userRepo, patientRepo)
+
 	//notificationRepo := repositories.NewNotificationRepository(db)
 	//notificationHandler := handlers.NewNotificationHandler(notificationRepo)
 
@@ -45,6 +48,7 @@ func SetupRouter() *gin.Engine {
 		{
 			authGroup.POST("/register", userHandler.CreateUser)
 			authGroup.POST("/login", userHandler.Login)
+			authGroup.POST("/change-password", userHandler.ChangePassword)
 		}
 
 		usersGroup := v1.Group("/users")
@@ -61,6 +65,23 @@ func SetupRouter() *gin.Engine {
 			patientsGroup.GET("/:id", patientHandler.GetPatientByID)
 		}
 
+		recordsGroup := v1.Group("/records")
+		recordsGroup.Use(auth.AuthMiddleware())
+		{
+			recordsGroup.GET("/", auth.RoleMiddleware([]string{"patient"}), recordHandler.GetRecordByClaim)
+			recordsGroup.GET("/:iin", auth.RoleMiddleware([]string{"doctor"}), recordHandler.GetRecordByIIN)
+			recordsGroup.POST("/", auth.RoleMiddleware([]string{"doctor"}), recordHandler.CreateRecord)
+			recordsGroup.PUT("/:id", auth.RoleMiddleware([]string{"doctor"}), recordHandler.UpdateRecord)
+		}
+
+		appointmentsGroup := v1.Group("/appointments")
+		appointmentsGroup.Use(auth.AuthMiddleware())
+		{
+			appointmentsGroup.POST("/", auth.RoleMiddleware([]string{"doctor"}), appointmentHandler.CreateAppointment)
+			appointmentsGroup.DELETE("/:id", auth.RoleMiddleware([]string{"doctor"}), appointmentHandler.DeleteAppointment)
+			appointmentsGroup.GET("/", appointmentHandler.GetAppointments)
+		}
+
 		//notificationsGroup := v1.Group("/notifications")
 		//notificationsGroup.Use(auth.AuthMiddleware())
 		//{
@@ -68,14 +89,6 @@ func SetupRouter() *gin.Engine {
 		//	notificationsGroup.DELETE("/:id", notificationHandler.DeleteNotification)
 		//	notificationsGroup.POST("/", notificationHandler.CreateNotification)
 		//}
-
-		recordsGroup := v1.Group("/records")
-		recordsGroup.Use(auth.AuthMiddleware())
-		{
-			recordsGroup.GET("/", auth.RoleMiddleware([]string{"patient"}), recordHandler.GetRecordByClaim)
-			recordsGroup.GET("/:iin", auth.RoleMiddleware([]string{"doctor"}), recordHandler.GetRecordByIIN)
-			recordsGroup.POST("/", auth.RoleMiddleware([]string{"doctor"}), recordHandler.CreateRecord)
-		}
 
 	}
 

@@ -1,5 +1,7 @@
 package models
 
+import "time"
+
 type User struct {
 	UserId            int    `json:"user_id"`
 	FirstName         string `json:"first_name"`
@@ -14,9 +16,15 @@ type User struct {
 }
 
 type LoginRequest struct {
-	Iin string `json:"iin"`
-
+	Iin      string `json:"iin"`
 	Password string `json:"password"`
+}
+
+type ChangePasswordRequest struct {
+	Iin            string `json:"iin"`
+	OldPassword    string `json:"old_password"`
+	NewPassword    string `json:"new_password"`
+	VerifyPassword string `json:"verify_password"`
 }
 
 type UserRequest struct {
@@ -94,4 +102,34 @@ type AccessLog struct {
 // ErrorResponse represents an error response
 type ErrorResponse struct {
 	Message string `json:"message" example:"Bad request"`
+}
+
+type Blockchain struct {
+	Chain []Block `json:"chain"`
+}
+
+type Block struct {
+	Index        int         `json:"index"`
+	Timestamp    time.Time   `json:"timestamp"`
+	Transaction  Transaction `json:"transaction"`
+	PreviousHash string      `json:"previous_hash"`
+	Hash         string      `json:"hash"`
+}
+
+type Transaction struct {
+	Action    string    `json:"action"`     // "Create" or "Update"
+	RecordID  int       `json:"record_id"`  // ID of the medical record
+	DoctorID  int       `json:"doctor_id"`  // Doctor who performed the action
+	PatientID int       `json:"patient_id"` // Patient associated with the record
+	Timestamp time.Time `json:"timestamp"`
+	Details   string    `json:"details"` // JSON string of record data
+}
+
+// Appointment represents an appointment between a doctor and a patient
+type Appointment struct {
+	ID        int       `json:"id"`
+	DoctorID  int       `json:"doctor_id"`
+	PatientID int       `json:"patient_id"`
+	Iin       string    `json:"iin"`
+	Date      time.Time `json:"date"`
 }
