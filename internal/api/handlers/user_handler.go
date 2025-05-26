@@ -7,8 +7,10 @@ import (
 	"diploma/internal/scripts"
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"math/rand"
 	"net/http"
 	"strconv"
+	"time"
 )
 
 type UserHandler struct {
@@ -90,7 +92,6 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
 
 	// Validate role
 	if userRequest.Role != "doctor" && userRequest.Role != "patient" {
-
 		c.JSON(http.StatusBadRequest, models.ErrorResponse{Message: "Invalid role"})
 		return
 	}
@@ -103,6 +104,7 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
 	body := "Your password generated to first login: " + otp
 	err := scripts.SendMail(userRequest.Email, subject, body)
 	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to send email"})
 		return
 	}
 
@@ -114,39 +116,11 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
 	}
 	userRequest.Password = hashedPassword
 
-	// Create User
+	// Create User and related records in a transaction
 	err = h.repo.CreateUser(&userRequest)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "User not created"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create user: " + err.Error()})
 		return
-	}
-
-	// Create doctor or patient based on role
-	if userRequest.Role == "patient" {
-		if userRequest.PatientDetails == nil {
-			c.JSON(http.StatusBadRequest, models.ErrorResponse{Message: "Patient details are required"})
-			return
-		}
-		userRequest.PatientDetails.UserId = userRequest.UserId
-		// Create patient
-		err = h.repo.CreatePatient(userRequest.PatientDetails)
-		if err != nil {
-			fmt.Printf("Error creating patient: %v. User ID: %d", err, userRequest.UserId)
-			c.JSON(http.StatusNotFound, gin.H{"error": "Patient not created"})
-			return
-		}
-	} else if userRequest.Role == "doctor" {
-		if userRequest.DoctorDetails == nil {
-			c.JSON(http.StatusBadRequest, models.ErrorResponse{Message: "Doctor details are required"})
-			return
-		}
-		userRequest.DoctorDetails.UserId = userRequest.UserId
-		// Create doctor
-		err = h.repo.CreateDoctor(userRequest.DoctorDetails)
-		if err != nil {
-			c.JSON(http.StatusNotFound, gin.H{"error": "Doctor not created"})
-			return
-		}
 	}
 
 	c.JSON(http.StatusCreated, userRequest)
@@ -169,86 +143,90 @@ func (h *UserHandler) Login(c *gin.Context) {
 		return
 	}
 
-	// Find user by iin
 	user, err := h.repo.GetUserByIin(loginRequest.Iin)
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not found"})
-		return
-	}
-
-	// Verify password
-	if err := auth.VerifyPassword(user.Password, loginRequest.Password); err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
 		return
 	}
 
-	// Generate JWT token
-	var u = uint(user.UserId)
-	token, err := auth.GenerateToken(u, user.Role)
+	if !auth.CheckPasswordHash(loginRequest.Password, user.Password) {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
+		return
+	}
+
+	// Check if password change is required
+	if !user.PasswordChanged {
+		c.JSON(http.StatusOK, gin.H{
+			"message":                 "Password change required",
+			"require_password_change": true,
+			"token":                   nil,
+		})
+		return
+	}
+
+	token, err := auth.GenerateToken(uint(user.UserId), user.Role)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate token"})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"token": token})
+	c.JSON(http.StatusOK, gin.H{
+		"token": token,
+		"user":  user,
+	})
 }
 
 // ChangePassword godoc
 // @Summary      Change password
-// @Description  Change password for user by IIN
-// @Tags         auth
+// @Description  Change user's password
+// @Tags         users
 // @Accept       json
 // @Produce      json
-// @Param        user  body  models.ChangePasswordRequest  true  "Change password request object"
-// @Success      201  {object}  models.ChangePasswordRequest
+// @Param        request  body  models.ChangePasswordRequest  true  "Change Password Request"
+// @Param        Authorization header string true "Bearer"
+// @Success      200  {object}  map[string]string
 // @Failure      400  {object}  map[string]string
-// @Router       /auth/change-password [post]
+// @Router       /users/change-password [post]
 func (h *UserHandler) ChangePassword(c *gin.Context) {
-	var ChangePasswordRequest models.ChangePasswordRequest
-	if err := c.ShouldBindJSON(&ChangePasswordRequest); err != nil {
+	var request models.ChangePasswordRequest
+	if err := c.ShouldBindJSON(&request); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	// Find user by iin
-	user, err := h.repo.GetUserByIin(ChangePasswordRequest.Iin)
+	user, err := h.repo.GetUserByIin(request.Iin)
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not found"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
 		return
 	}
 
-	// Verify password
-	if err := auth.VerifyPassword(user.Password, ChangePasswordRequest.OldPassword); err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
+	if !auth.CheckPasswordHash(request.OldPassword, user.Password) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid old password"})
 		return
 	}
 
-	// Verify new password equality
-	if ChangePasswordRequest.NewPassword != ChangePasswordRequest.VerifyPassword {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "New password and confirmation do not match"})
+	if request.NewPassword != request.VerifyPassword {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "New passwords do not match"})
 		return
 	}
 
-	// Check complexity
-	if len(ChangePasswordRequest.NewPassword) < 8 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Too short password"})
-		return
-	}
-
-	// Hash password
-	hashedPassword, err := auth.HashPassword(ChangePasswordRequest.NewPassword)
+	hashedPassword, err := auth.HashPassword(request.NewPassword)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to hash password"})
 		return
 	}
-	ChangePasswordRequest.NewPassword = hashedPassword
 
-	err = h.repo.UpdatePassword(ChangePasswordRequest.Iin, hashedPassword)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to change password"})
+	if err := h.repo.UpdatePassword(request.Iin, hashedPassword); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update password"})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"Status": "Password successfully changed"})
+
+	if err := h.repo.SetPasswordChanged(request.Iin, true); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update password_changed flag"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Password changed successfully"})
 }
 
 // DeleteUser godoc
@@ -291,6 +269,103 @@ func (h *UserHandler) DeleteUser(c *gin.Context) {
 	c.Status(http.StatusNoContent)
 }
 
+// ForgotPassword godoc
+// @Summary      Request password reset
+// @Description  Send OTP to user's email for password reset
+// @Tags         users
+// @Accept       json
+// @Produce      json
+// @Param        request  body  models.ForgotPasswordRequest  true  "Forgot Password Request"
+// @Success      200  {object}  map[string]string
+// @Failure      400  {object}  map[string]string
+// @Router       /users/forgot-password [post]
+func (h *UserHandler) ForgotPassword(c *gin.Context) {
+	var request models.ForgotPasswordRequest
+	if err := c.ShouldBindJSON(&request); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	_, err := h.repo.GetUserByIin(request.Iin)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		return
+	}
+
+	otp := generateOTP()
+	expiresAt := time.Now().Add(5 * time.Minute)
+
+	otpVerification := models.OTPVerification{
+		Iin:       request.Iin,
+		OTP:       otp,
+		ExpiresAt: expiresAt,
+	}
+
+	if err := h.repo.CreateOTPVerification(&otpVerification); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create OTP verification"})
+		return
+	}
+
+	// TODO: Send OTP via email
+	// For now, just return the OTP in the response
+	c.JSON(http.StatusOK, gin.H{
+		"message": "OTP sent to email",
+		"otp":     otp, // Remove this in production
+	})
+}
+
+// VerifyOTP godoc
+// @Summary      Verify OTP
+// @Description  Verify OTP and set password_changed flag to false
+// @Tags         users
+// @Accept       json
+// @Produce      json
+// @Param        request  body  models.VerifyOTPRequest  true  "Verify OTP Request"
+// @Success      200  {object}  map[string]string
+// @Failure      400  {object}  map[string]string
+// @Router       /users/verify-otp [post]
+func (h *UserHandler) VerifyOTP(c *gin.Context) {
+	var request models.VerifyOTPRequest
+	if err := c.ShouldBindJSON(&request); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	otpVerification, err := h.repo.GetOTPVerification(request.Iin)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "OTP verification not found"})
+		return
+	}
+
+	if otpVerification.OTP != request.OTP {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid OTP"})
+		return
+	}
+
+	if time.Now().After(otpVerification.ExpiresAt) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "OTP has expired"})
+		return
+	}
+
+	if err := h.repo.SetPasswordChanged(request.Iin, false); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update password_changed flag"})
+		return
+	}
+
+	if err := h.repo.DeleteOTPVerification(request.Iin); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete OTP verification"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "OTP verified successfully"})
+}
+
+func generateOTP() string {
+	// Generate a 6-digit OTP
+	otp := rand.Intn(900000) + 100000
+	return fmt.Sprintf("%06d", otp)
+}
+
 //// GetUserByIIN godoc
 //// @Summary      Get a user by IIN
 //// @Description  Fetch a user by its IIN
@@ -314,7 +389,7 @@ func (h *UserHandler) DeleteUser(c *gin.Context) {
 //	}
 //	c.JSON(http.StatusOK, user)
 //}
-
+//
 //// CreateBook godoc
 //// @Summary      Create a new book
 //// @Description  Create a new book with the provided details

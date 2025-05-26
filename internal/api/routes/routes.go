@@ -32,11 +32,11 @@ func SetupRouter() *gin.Engine {
 	appointmentRepo := repositories.NewAppointmentRepository(db)
 	appointmentHandler := handlers.NewAppointmentHandler(appointmentRepo, userRepo, patientRepo)
 
-	//notificationRepo := repositories.NewNotificationRepository(db)
-	//notificationHandler := handlers.NewNotificationHandler(notificationRepo)
-
 	recordRepo := repositories.NewRecordRepository(db)
 	recordHandler := handlers.NewRecordHandler(recordRepo, userRepo, patientRepo)
+
+	accessRequestRepo := repositories.NewAccessRequestRepository(db)
+	accessRequestHandler := handlers.NewAccessRequestHandler(accessRequestRepo, userRepo, patientRepo)
 
 	// Swagger route
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
@@ -49,6 +49,8 @@ func SetupRouter() *gin.Engine {
 			authGroup.POST("/register", userHandler.CreateUser)
 			authGroup.POST("/login", userHandler.Login)
 			authGroup.POST("/change-password", userHandler.ChangePassword)
+			authGroup.POST("/forgot-password", userHandler.ForgotPassword)
+			authGroup.POST("/verify-otp", userHandler.VerifyOTP)
 		}
 
 		usersGroup := v1.Group("/users")
@@ -82,13 +84,13 @@ func SetupRouter() *gin.Engine {
 			appointmentsGroup.GET("/", appointmentHandler.GetAppointments)
 		}
 
-		//notificationsGroup := v1.Group("/notifications")
-		//notificationsGroup.Use(auth.AuthMiddleware())
-		//{
-		//	notificationsGroup.GET("/:id", notificationHandler.GetNotificationByUserID)
-		//	notificationsGroup.DELETE("/:id", notificationHandler.DeleteNotification)
-		//	notificationsGroup.POST("/", notificationHandler.CreateNotification)
-		//}
+		accessRequestsGroup := v1.Group("/access-requests")
+		accessRequestsGroup.Use(auth.AuthMiddleware())
+		{
+			accessRequestsGroup.POST("/", auth.RoleMiddleware([]string{"doctor"}), accessRequestHandler.CreateAccessRequest)
+			accessRequestsGroup.GET("/pending", auth.RoleMiddleware([]string{"patient"}), accessRequestHandler.GetPendingAccessRequests)
+			accessRequestsGroup.PUT("/:id/status", auth.RoleMiddleware([]string{"patient"}), accessRequestHandler.UpdateAccessRequestStatus)
+		}
 
 	}
 

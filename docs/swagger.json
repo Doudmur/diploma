@@ -9,6 +9,154 @@
     "host": "localhost:8080",
     "basePath": "/api/v1",
     "paths": {
+        "/access-requests": {
+            "post": {
+                "description": "Create a new access request for a patient's records",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "access requests"
+                ],
+                "summary": "Create a new access request",
+                "parameters": [
+                    {
+                        "description": "Access Request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.AccessRequestCreate"
+                        }
+                    },
+                    {
+                        "type": "string",
+                        "description": "Bearer",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/models.AccessRequestResponseSwagger"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/access-requests/pending": {
+            "get": {
+                "description": "Get all pending access requests for the authenticated patient",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "access requests"
+                ],
+                "summary": "Get pending access requests",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.AccessRequestResponseSwagger"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/access-requests/{id}/status": {
+            "put": {
+                "description": "Update the status of an access request",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "access requests"
+                ],
+                "summary": "Update access request status",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Access Request ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Status Update",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.AccessRequestStatusUpdate"
+                        }
+                    },
+                    {
+                        "type": "string",
+                        "description": "Bearer",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.AccessRequestResponseSwagger"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/appointments": {
             "get": {
                 "description": "Fetch appointments for the authenticated doctor or patient",
@@ -50,7 +198,7 @@
                 }
             },
             "post": {
-                "description": "Create an appointment for a patient with a doctor",
+                "description": "Create a new appointment",
                 "consumes": [
                     "application/json"
                 ],
@@ -63,12 +211,12 @@
                 "summary": "Create a new appointment",
                 "parameters": [
                     {
-                        "description": "Appointment object",
-                        "name": "appointment",
+                        "description": "Appointment",
+                        "name": "request",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.Appointment"
+                            "$ref": "#/definitions/models.AppointmentRequest"
                         }
                     },
                     {
@@ -88,15 +236,6 @@
                     },
                     "400": {
                         "description": "Bad Request",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -163,49 +302,6 @@
                     },
                     "403": {
                         "description": "Forbidden",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/auth/change-password": {
-            "post": {
-                "description": "Change password for user by IIN",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "auth"
-                ],
-                "summary": "Change password",
-                "parameters": [
-                    {
-                        "description": "Change password request object",
-                        "name": "user",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/models.ChangePasswordRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "description": "Created",
-                        "schema": {
-                            "$ref": "#/definitions/models.ChangePasswordRequest"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -292,141 +388,6 @@
                     },
                     "400": {
                         "description": "Bad Request",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/notifications": {
-            "post": {
-                "description": "Create a new notification with the provided details",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "notifications"
-                ],
-                "summary": "Create a new notification",
-                "parameters": [
-                    {
-                        "description": "Notification object",
-                        "name": "notification",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/models.Notification"
-                        }
-                    },
-                    {
-                        "type": "string",
-                        "description": "Bearer",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "description": "Created",
-                        "schema": {
-                            "$ref": "#/definitions/models.Notification"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/notifications/{id}": {
-            "get": {
-                "description": "Fetch a notification by its UserID",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "notifications"
-                ],
-                "summary": "Get a notification by UserID",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "User ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Bearer",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/models.Notification"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            },
-            "delete": {
-                "description": "Delete a notification by its ID",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "notifications"
-                ],
-                "summary": "Delete a notification",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "Notification ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Bearer",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "204": {
-                        "description": "No Content"
-                    },
-                    "404": {
-                        "description": "Not Found",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -554,7 +515,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/handlers.CreateRecordRequest"
+                            "$ref": "#/definitions/models.RecordRequest"
                         }
                     },
                     {
@@ -612,7 +573,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.Record"
+                            "$ref": "#/definitions/models.RecordRequest"
                         }
                     },
                     {
@@ -719,6 +680,151 @@
                 }
             }
         },
+        "/users/change-password": {
+            "post": {
+                "description": "Change user's password",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "users"
+                ],
+                "summary": "Change password",
+                "parameters": [
+                    {
+                        "description": "Change Password Request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.ChangePasswordRequest"
+                        }
+                    },
+                    {
+                        "type": "string",
+                        "description": "Bearer",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/users/forgot-password": {
+            "post": {
+                "description": "Send OTP to user's email for password reset",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "users"
+                ],
+                "summary": "Request password reset",
+                "parameters": [
+                    {
+                        "description": "Forgot Password Request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.ForgotPasswordRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/users/verify-otp": {
+            "post": {
+                "description": "Verify OTP and set password_changed flag to false",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "users"
+                ],
+                "summary": "Verify OTP",
+                "parameters": [
+                    {
+                        "description": "Verify OTP Request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.VerifyOTPRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/users/{id}": {
             "get": {
                 "description": "Fetch a user by its ID",
@@ -792,11 +898,71 @@
         }
     },
     "definitions": {
-        "handlers.CreateRecordRequest": {
+        "models.AccessRequestCreate": {
             "type": "object",
             "properties": {
-                "record": {
-                    "$ref": "#/definitions/models.Record"
+                "iin": {
+                    "type": "string",
+                    "example": "123456789012"
+                }
+            }
+        },
+        "models.AccessRequestResponseSwagger": {
+            "type": "object",
+            "properties": {
+                "access_expires_at": {
+                    "type": "string",
+                    "example": "2024-03-14T13:30:00Z"
+                },
+                "access_granted_at": {
+                    "type": "string",
+                    "example": "2024-03-14T12:30:00Z"
+                },
+                "created_at": {
+                    "type": "string",
+                    "example": "2024-03-14T12:00:00Z"
+                },
+                "doctor_id": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "doctor_name": {
+                    "type": "string",
+                    "example": "John Doe"
+                },
+                "expires_at": {
+                    "type": "string",
+                    "example": "2024-03-14T13:00:00Z"
+                },
+                "id": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "patient_id": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "status": {
+                    "type": "string",
+                    "enum": [
+                        "pending",
+                        "granted",
+                        "rejected"
+                    ],
+                    "example": "pending"
+                }
+            }
+        },
+        "models.AccessRequestStatusUpdate": {
+            "type": "object",
+            "properties": {
+                "status": {
+                    "type": "string",
+                    "enum": [
+                        "granted",
+                        "rejected"
+                    ],
+                    "example": "granted"
                 }
             }
         },
@@ -817,6 +983,19 @@
                 },
                 "patient_id": {
                     "type": "integer"
+                }
+            }
+        },
+        "models.AppointmentRequest": {
+            "type": "object",
+            "properties": {
+                "date": {
+                    "type": "string",
+                    "example": "2024-03-14T12:00:00Z"
+                },
+                "iin": {
+                    "type": "string",
+                    "example": "123456789012"
                 }
             }
         },
@@ -851,6 +1030,14 @@
                 }
             }
         },
+        "models.ForgotPasswordRequest": {
+            "type": "object",
+            "properties": {
+                "iin": {
+                    "type": "string"
+                }
+            }
+        },
         "models.LoginRequest": {
             "type": "object",
             "properties": {
@@ -859,26 +1046,6 @@
                 },
                 "password": {
                     "type": "string"
-                }
-            }
-        },
-        "models.Notification": {
-            "type": "object",
-            "properties": {
-                "message": {
-                    "type": "string"
-                },
-                "notification_id": {
-                    "type": "integer"
-                },
-                "sent_at": {
-                    "type": "string"
-                },
-                "type": {
-                    "type": "string"
-                },
-                "user_id": {
-                    "type": "integer"
                 }
             }
         },
@@ -945,6 +1112,27 @@
                 }
             }
         },
+        "models.RecordRequest": {
+            "type": "object",
+            "properties": {
+                "diagnosis": {
+                    "type": "string",
+                    "example": "Common cold"
+                },
+                "iin": {
+                    "type": "string",
+                    "example": "123456789012"
+                },
+                "test_result": {
+                    "type": "string",
+                    "example": "Blood test results"
+                },
+                "treatment_plan": {
+                    "type": "string",
+                    "example": "Rest and medication"
+                }
+            }
+        },
         "models.User": {
             "type": "object",
             "properties": {
@@ -968,6 +1156,9 @@
                 },
                 "password": {
                     "type": "string"
+                },
+                "password_changed": {
+                    "type": "boolean"
                 },
                 "phone_number": {
                     "type": "string"
@@ -1012,6 +1203,19 @@
                 },
                 "user_id": {
                     "type": "integer"
+                }
+            }
+        },
+        "models.VerifyOTPRequest": {
+            "type": "object",
+            "properties": {
+                "iin": {
+                    "type": "string",
+                    "example": "123456789012"
+                },
+                "otp": {
+                    "type": "string",
+                    "example": "123456"
                 }
             }
         }

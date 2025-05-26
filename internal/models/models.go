@@ -13,6 +13,7 @@ type User struct {
 	BiometricDataHash string `json:"biometric_data_hash"`
 	CreatedAt         string `json:"created_at"`
 	Password          string `json:"password"`
+	PasswordChanged   bool   `json:"password_changed"`
 }
 
 type LoginRequest struct {
@@ -72,14 +73,6 @@ type Doctor struct {
 	Specialization string `json:"specialization"`
 }
 
-type Notification struct {
-	NotificationId int    `json:"notification_id"`
-	UserId         int    `json:"user_id"`
-	Message        string `json:"message"`
-	Type           string `json:"type"`
-	SentAt         string `json:"sent_at"`
-}
-
 type Record struct {
 	RecordId      int    `json:"record_id"`
 	PatientId     int    `json:"patient_id"`
@@ -126,10 +119,27 @@ type Transaction struct {
 }
 
 // Appointment represents an appointment between a doctor and a patient
+
 type Appointment struct {
 	ID        int       `json:"id"`
 	DoctorID  int       `json:"doctor_id"`
 	PatientID int       `json:"patient_id"`
 	Iin       string    `json:"iin"`
 	Date      time.Time `json:"date"`
+}
+
+type ForgotPasswordRequest struct {
+	Iin string `json:"iin"`
+}
+
+type ResetPasswordRequest struct {
+	Iin         string `json:"iin"`
+	OTP         string `json:"otp"`
+	NewPassword string `json:"new_password"`
+}
+
+type OTPVerification struct {
+	Iin       string    `json:"iin"`
+	OTP       string    `json:"otp"`
+	ExpiresAt time.Time `json:"expires_at"`
 }

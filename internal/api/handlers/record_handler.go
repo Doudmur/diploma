@@ -34,7 +34,38 @@ func NewRecordHandler(recordRepo *repositories.RecordRepository, userRepo *repos
 // @Failure      404  {object}  map[string]string
 // @Router       /records/{iin} [get]
 func (h *RecordHandler) GetRecordByIIN(c *gin.Context) {
+	userID := c.GetUint("user_id")
+	doctor, err := h.UserRepo.GetDoctorByUserId(strconv.Itoa(int(userID)))
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Doctor not found"})
+		return
+	}
+
 	iin := c.Param("iin")
+	user, err := h.UserRepo.GetUserByIin(iin)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Patient not found"})
+		return
+	}
+
+	patient, err := h.PatientRepo.GetPatientByUserID(user.UserId)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Patient not found"})
+		return
+	}
+
+	// Check if doctor has valid access
+	hasAccess, err := h.RecordRepo.HasValidAccess(doctor.DoctorId, patient.PatientId)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	if !hasAccess {
+		c.JSON(http.StatusForbidden, gin.H{"error": "No valid access to patient records"})
+		return
+	}
+
 	record, err := h.RecordRepo.GetRecordByIIN(iin)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Record not found"})
@@ -69,23 +100,22 @@ func (h *RecordHandler) GetRecordByClaim(c *gin.Context) {
 // @Tags         medical records
 // @Accept       json
 // @Produce      json
-// @Param        request  body  CreateRecordRequest  true  "Record"
+// @Param        request  body  models.RecordRequest  true  "Record"
 // @Param        Authorization header string true "Bearer"
 // @Success      201  {object}  map[string]interface{}
 // @Failure      400  {object}  map[string]string
 // @Router       /records [post]
 func (h *RecordHandler) CreateRecord(c *gin.Context) {
-	var request CreateRecordRequest
+	var request models.RecordRequest
 	if err := c.ShouldBindJSON(&request); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	record := request.Record
 
 	userID := c.GetUint("user_id")
 
 	// Get user by IIN
-	user, err := h.UserRepo.GetUserByIin(record.Iin)
+	user, err := h.UserRepo.GetUserByIin(request.Iin)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
 		return
@@ -105,8 +135,14 @@ func (h *RecordHandler) CreateRecord(c *gin.Context) {
 		return
 	}
 
-	record.PatientId = patient.PatientId
-	record.DoctorId = doctor.DoctorId
+	record := models.Record{
+		PatientId:     patient.PatientId,
+		DoctorId:      doctor.DoctorId,
+		Iin:           request.Iin,
+		Diagnosis:     request.Diagnosis,
+		TreatmentPlan: request.TreatmentPlan,
+		TestResult:    request.TestResult,
+	}
 
 	// Create record
 	if err := h.RecordRepo.CreateRecord(&record); err != nil {
@@ -140,7 +176,7 @@ func (h *RecordHandler) CreateRecord(c *gin.Context) {
 // @Accept       json
 // @Produce      json
 // @Param        id   path      int                  true  "Record ID"
-// @Param        record  body      models.Record  true  "Updated Record object"
+// @Param        record  body      models.RecordRequest  true  "Updated Record object"
 // @Param 		 Authorization header string true "Bearer"
 // @Success      200  {object}  models.Record
 // @Failure      400  {object}  map[string]string
@@ -153,14 +189,11 @@ func (h *RecordHandler) UpdateRecord(c *gin.Context) {
 		return
 	}
 
-	var updatedRecord models.Record
-	if err := c.ShouldBindJSON(&updatedRecord); err != nil {
+	var request models.RecordRequest
+	if err := c.ShouldBindJSON(&request); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-
-	// Set the RecordID from the path parameter
-	updatedRecord.RecordId = recordID
 
 	// Get the doctor ID from the context (set by AuthMiddleware)
 	userId := c.GetUint("user_id")
@@ -170,8 +203,8 @@ func (h *RecordHandler) UpdateRecord(c *gin.Context) {
 		return
 	}
 
-	// Verify the doctor has permission (simplified check; in practice, you might check ownership or admin rights)
-	existingRecord, err := h.RecordRepo.GetRecordByID(recordID) // Assume this method exists or add it
+	// Verify the doctor has permission
+	existingRecord, err := h.RecordRepo.GetRecordByID(recordID)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Record not found"})
 		return
@@ -180,6 +213,17 @@ func (h *RecordHandler) UpdateRecord(c *gin.Context) {
 	if existingRecord.DoctorId != doctor.DoctorId {
 		c.JSON(http.StatusForbidden, gin.H{"error": "Unauthorized to update this record"})
 		return
+	}
+
+	updatedRecord := models.Record{
+		RecordId:      recordID,
+		PatientId:     existingRecord.PatientId,
+		DoctorId:      doctor.DoctorId,
+		Iin:           request.Iin,
+		Diagnosis:     request.Diagnosis,
+		TreatmentPlan: request.TreatmentPlan,
+		TestResult:    request.TestResult,
+		CreatedAt:     existingRecord.CreatedAt,
 	}
 
 	// Update the record

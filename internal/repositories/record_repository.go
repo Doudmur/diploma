@@ -32,7 +32,8 @@ func (r *RecordRepository) GetRecordByPatientID(UserId int) (*models.Record, err
 
 func (r *RecordRepository) GetRecordByIIN(iin string) (*models.Record, error) {
 	var userId int
-	if err := r.db.QueryRow("SELECT user_id FROM public.user WHERE iin=$1", iin).Scan(&userId); err != nil {
+	var passwordChanged bool
+	if err := r.db.QueryRow("SELECT user_id, password_changed FROM public.user WHERE iin=$1", iin).Scan(&userId, &passwordChanged); err != nil {
 		return nil, err
 	}
 
@@ -100,4 +101,18 @@ func (r *RecordRepository) CreateRecord(record *models.Record) error {
 func (r *RecordRepository) CreateAccessLog(accessLog *models.AccessLog) error {
 	err := r.db.QueryRow("INSERT INTO access_log(doctor_id, record_id, access_type) VALUES ($1, $2, $3) RETURNING log_id", accessLog.DoctorId, accessLog.RecordId, accessLog.AccessType).Scan(&accessLog.LogId)
 	return err
+}
+
+func (r *RecordRepository) HasValidAccess(doctorID, patientID int) (bool, error) {
+	query := `
+		SELECT EXISTS (
+			SELECT 1 FROM access_requests
+			WHERE doctor_id = $1 AND patient_id = $2
+			AND status = 'granted'
+			AND access_expires_at > NOW()
+		)`
+
+	var exists bool
+	err := r.db.QueryRow(query, doctorID, patientID).Scan(&exists)
+	return exists, err
 }

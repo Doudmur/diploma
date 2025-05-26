@@ -25,48 +25,58 @@ func NewAppointmentHandler(appointmentRepo *repositories.AppointmentRepository, 
 
 // CreateAppointment godoc
 // @Summary      Create a new appointment
-// @Description  Create an appointment for a patient with a doctor
+// @Description  Create a new appointment
 // @Tags         appointments
 // @Accept       json
 // @Produce      json
-// @Param        appointment  body  models.Appointment  true  "Appointment object"
+// @Param        request  body  models.AppointmentRequest  true  "Appointment"
 // @Param        Authorization header string true "Bearer"
 // @Success      201  {object}  models.Appointment
 // @Failure      400  {object}  map[string]string
-// @Failure      401  {object}  map[string]string
 // @Router       /appointments [post]
 func (h *AppointmentHandler) CreateAppointment(c *gin.Context) {
+	var request models.AppointmentRequest
+	if err := c.ShouldBindJSON(&request); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
 	userID := c.GetUint("user_id")
+
+	// Get user by IIN
+	user, err := h.UserRepo.GetUserByIin(request.Iin)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		return
+	}
+
+	// Get patient by userId
+	patient, err := h.PatientRepo.GetPatientByUserID(user.UserId)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Patient not found"})
+		return
+	}
+
+	// Get doctor by userId
 	doctor, err := h.UserRepo.GetDoctorByUserId(strconv.Itoa(int(userID)))
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Doctor not found"})
 		return
 	}
 
-	var appointment models.Appointment
-	appointment.DoctorID = doctor.DoctorId
-	if err := c.ShouldBindJSON(&appointment); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	// Validate appointment date
+	if request.Date.Before(time.Now()) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Appointment date cannot be in the past"})
 		return
 	}
 
-	// Validate patient_id
-	userObj, err := h.UserRepo.GetUserByIin(appointment.Iin)
-	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
-	}
-	patient, err := h.PatientRepo.GetPatientByUserID(userObj.UserId)
-	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
-	}
-	appointment.PatientID = patient.PatientId
-
-	// Ensure appointment date is in the future
-	if appointment.Date.Before(time.Now()) {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Appointment date must be in the future"})
-		return
+	appointment := models.Appointment{
+		PatientID: patient.PatientId,
+		DoctorID:  doctor.DoctorId,
+		Date:      request.Date,
 	}
 
+	// Create appointment
 	if err := h.AppointmentRepo.CreateAppointment(&appointment); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

@@ -1,9 +1,53 @@
 basePath: /api/v1
 definitions:
-  handlers.CreateRecordRequest:
+  models.AccessRequestCreate:
     properties:
-      record:
-        $ref: '#/definitions/models.Record'
+      iin:
+        example: "123456789012"
+        type: string
+    type: object
+  models.AccessRequestResponseSwagger:
+    properties:
+      access_expires_at:
+        example: "2024-03-14T13:30:00Z"
+        type: string
+      access_granted_at:
+        example: "2024-03-14T12:30:00Z"
+        type: string
+      created_at:
+        example: "2024-03-14T12:00:00Z"
+        type: string
+      doctor_id:
+        example: 1
+        type: integer
+      doctor_name:
+        example: John Doe
+        type: string
+      expires_at:
+        example: "2024-03-14T13:00:00Z"
+        type: string
+      id:
+        example: 1
+        type: integer
+      patient_id:
+        example: 1
+        type: integer
+      status:
+        enum:
+        - pending
+        - granted
+        - rejected
+        example: pending
+        type: string
+    type: object
+  models.AccessRequestStatusUpdate:
+    properties:
+      status:
+        enum:
+        - granted
+        - rejected
+        example: granted
+        type: string
     type: object
   models.Appointment:
     properties:
@@ -17,6 +61,15 @@ definitions:
         type: string
       patient_id:
         type: integer
+    type: object
+  models.AppointmentRequest:
+    properties:
+      date:
+        example: "2024-03-14T12:00:00Z"
+        type: string
+      iin:
+        example: "123456789012"
+        type: string
     type: object
   models.ChangePasswordRequest:
     properties:
@@ -38,25 +91,17 @@ definitions:
       user_id:
         type: integer
     type: object
+  models.ForgotPasswordRequest:
+    properties:
+      iin:
+        type: string
+    type: object
   models.LoginRequest:
     properties:
       iin:
         type: string
       password:
         type: string
-    type: object
-  models.Notification:
-    properties:
-      message:
-        type: string
-      notification_id:
-        type: integer
-      sent_at:
-        type: string
-      type:
-        type: string
-      user_id:
-        type: integer
     type: object
   models.Patient:
     properties:
@@ -99,6 +144,21 @@ definitions:
       treatment_plan:
         type: string
     type: object
+  models.RecordRequest:
+    properties:
+      diagnosis:
+        example: Common cold
+        type: string
+      iin:
+        example: "123456789012"
+        type: string
+      test_result:
+        example: Blood test results
+        type: string
+      treatment_plan:
+        example: Rest and medication
+        type: string
+    type: object
   models.User:
     properties:
       biometric_data_hash:
@@ -115,6 +175,8 @@ definitions:
         type: string
       password:
         type: string
+      password_changed:
+        type: boolean
       phone_number:
         type: string
       role:
@@ -145,6 +207,15 @@ definitions:
       user_id:
         type: integer
     type: object
+  models.VerifyOTPRequest:
+    properties:
+      iin:
+        example: "123456789012"
+        type: string
+      otp:
+        example: "123456"
+        type: string
+    type: object
 host: localhost:8080
 info:
   contact: {}
@@ -152,6 +223,104 @@ info:
   title: DiplomaAPI
   version: "1.0"
 paths:
+  /access-requests:
+    post:
+      consumes:
+      - application/json
+      description: Create a new access request for a patient's records
+      parameters:
+      - description: Access Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.AccessRequestCreate'
+      - description: Bearer
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.AccessRequestResponseSwagger'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Create a new access request
+      tags:
+      - access requests
+  /access-requests/{id}/status:
+    put:
+      consumes:
+      - application/json
+      description: Update the status of an access request
+      parameters:
+      - description: Access Request ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Status Update
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.AccessRequestStatusUpdate'
+      - description: Bearer
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.AccessRequestResponseSwagger'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Update access request status
+      tags:
+      - access requests
+  /access-requests/pending:
+    get:
+      description: Get all pending access requests for the authenticated patient
+      parameters:
+      - description: Bearer
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.AccessRequestResponseSwagger'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get pending access requests
+      tags:
+      - access requests
   /appointments:
     get:
       description: Fetch appointments for the authenticated doctor or patient
@@ -182,14 +351,14 @@ paths:
     post:
       consumes:
       - application/json
-      description: Create an appointment for a patient with a doctor
+      description: Create a new appointment
       parameters:
-      - description: Appointment object
+      - description: Appointment
         in: body
-        name: appointment
+        name: request
         required: true
         schema:
-          $ref: '#/definitions/models.Appointment'
+          $ref: '#/definitions/models.AppointmentRequest'
       - description: Bearer
         in: header
         name: Authorization
@@ -204,12 +373,6 @@ paths:
             $ref: '#/definitions/models.Appointment'
         "400":
           description: Bad Request
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "401":
-          description: Unauthorized
           schema:
             additionalProperties:
               type: string
@@ -261,34 +424,6 @@ paths:
       summary: Delete an appointment
       tags:
       - appointments
-  /auth/change-password:
-    post:
-      consumes:
-      - application/json
-      description: Change password for user by IIN
-      parameters:
-      - description: Change password request object
-        in: body
-        name: user
-        required: true
-        schema:
-          $ref: '#/definitions/models.ChangePasswordRequest'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            $ref: '#/definitions/models.ChangePasswordRequest'
-        "400":
-          description: Bad Request
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      summary: Change password
-      tags:
-      - auth
   /auth/login:
     post:
       consumes:
@@ -345,96 +480,6 @@ paths:
       summary: Create a new user
       tags:
       - auth
-  /notifications:
-    post:
-      consumes:
-      - application/json
-      description: Create a new notification with the provided details
-      parameters:
-      - description: Notification object
-        in: body
-        name: notification
-        required: true
-        schema:
-          $ref: '#/definitions/models.Notification'
-      - description: Bearer
-        in: header
-        name: Authorization
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            $ref: '#/definitions/models.Notification'
-        "400":
-          description: Bad Request
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      summary: Create a new notification
-      tags:
-      - notifications
-  /notifications/{id}:
-    delete:
-      description: Delete a notification by its ID
-      parameters:
-      - description: Notification ID
-        in: path
-        name: id
-        required: true
-        type: integer
-      - description: Bearer
-        in: header
-        name: Authorization
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "204":
-          description: No Content
-        "404":
-          description: Not Found
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      summary: Delete a notification
-      tags:
-      - notifications
-    get:
-      description: Fetch a notification by its UserID
-      parameters:
-      - description: User ID
-        in: path
-        name: id
-        required: true
-        type: integer
-      - description: Bearer
-        in: header
-        name: Authorization
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/models.Notification'
-        "404":
-          description: Not Found
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      summary: Get a notification by UserID
-      tags:
-      - notifications
   /patients:
     get:
       description: Fetch a list of all patients
@@ -510,7 +555,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/handlers.CreateRecordRequest'
+          $ref: '#/definitions/models.RecordRequest'
       - description: Bearer
         in: header
         name: Authorization
@@ -549,7 +594,7 @@ paths:
         name: record
         required: true
         schema:
-          $ref: '#/definitions/models.Record'
+          $ref: '#/definitions/models.RecordRequest'
       - description: Bearer
         in: header
         name: Authorization
@@ -667,6 +712,101 @@ paths:
               type: string
             type: object
       summary: Get a user by ID
+      tags:
+      - users
+  /users/change-password:
+    post:
+      consumes:
+      - application/json
+      description: Change user's password
+      parameters:
+      - description: Change Password Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.ChangePasswordRequest'
+      - description: Bearer
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Change password
+      tags:
+      - users
+  /users/forgot-password:
+    post:
+      consumes:
+      - application/json
+      description: Send OTP to user's email for password reset
+      parameters:
+      - description: Forgot Password Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.ForgotPasswordRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Request password reset
+      tags:
+      - users
+  /users/verify-otp:
+    post:
+      consumes:
+      - application/json
+      description: Verify OTP and set password_changed flag to false
+      parameters:
+      - description: Verify OTP Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.VerifyOTPRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Verify OTP
       tags:
       - users
 swagger: "2.0"
