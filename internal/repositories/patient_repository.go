@@ -23,7 +23,7 @@ func (r *PatientRepository) GetPatients() ([]models.Patient, error) {
 	var patients []models.Patient
 	for rows.Next() {
 		var patient models.Patient
-		if err := rows.Scan(&patient.PatientId, &patient.UserId, &patient.DateOfBirth, &patient.Gender); err != nil {
+		if err := rows.Scan(&patient.PatientId, &patient.UserId, &patient.DateOfBirth); err != nil {
 			return nil, err
 		}
 		patients = append(patients, patient)
@@ -35,7 +35,7 @@ func (r *PatientRepository) GetPatientByID(id int) (*models.Patient, error) {
 	row := r.db.QueryRow("SELECT * FROM public.patient WHERE patient_id=$1", id)
 
 	var patient models.Patient
-	if err := row.Scan(&patient.PatientId, &patient.UserId, &patient.DateOfBirth, &patient.Gender); err != nil {
+	if err := row.Scan(&patient.PatientId, &patient.UserId, &patient.DateOfBirth); err != nil {
 		return nil, err
 	}
 	return &patient, nil
@@ -45,7 +45,7 @@ func (r *PatientRepository) GetPatientByUserID(id int) (*models.Patient, error) 
 	row := r.db.QueryRow("SELECT * FROM public.patient WHERE user_id=$1", id)
 
 	var patient models.Patient
-	if err := row.Scan(&patient.PatientId, &patient.UserId, &patient.DateOfBirth, &patient.Gender); err != nil {
+	if err := row.Scan(&patient.PatientId, &patient.UserId, &patient.DateOfBirth); err != nil {
 		return nil, err
 	}
 	return &patient, nil

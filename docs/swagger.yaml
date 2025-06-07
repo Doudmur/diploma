@@ -1,54 +1,5 @@
 basePath: /api/v1
 definitions:
-  models.AccessRequestCreate:
-    properties:
-      iin:
-        example: "123456789012"
-        type: string
-    type: object
-  models.AccessRequestResponseSwagger:
-    properties:
-      access_expires_at:
-        example: "2024-03-14T13:30:00Z"
-        type: string
-      access_granted_at:
-        example: "2024-03-14T12:30:00Z"
-        type: string
-      created_at:
-        example: "2024-03-14T12:00:00Z"
-        type: string
-      doctor_id:
-        example: 1
-        type: integer
-      doctor_name:
-        example: John Doe
-        type: string
-      expires_at:
-        example: "2024-03-14T13:00:00Z"
-        type: string
-      id:
-        example: 1
-        type: integer
-      patient_id:
-        example: 1
-        type: integer
-      status:
-        enum:
-        - pending
-        - granted
-        - rejected
-        example: pending
-        type: string
-    type: object
-  models.AccessRequestStatusUpdate:
-    properties:
-      status:
-        enum:
-        - granted
-        - rejected
-        example: granted
-        type: string
-    type: object
   models.Appointment:
     properties:
       date:
@@ -82,6 +33,15 @@ definitions:
       verify_password:
         type: string
     type: object
+  models.Doctor:
+    properties:
+      doctor_id:
+        type: integer
+      specialization:
+        type: string
+      user_id:
+        type: integer
+    type: object
   models.DoctorDetails:
     properties:
       doctor_id:
@@ -107,8 +67,6 @@ definitions:
     properties:
       date_of_birth:
         type: string
-      gender:
-        type: string
       patient_id:
         type: integer
       user_id:
@@ -117,8 +75,6 @@ definitions:
   models.PatientDetails:
     properties:
       date_of_birth:
-        type: string
-      gender:
         type: string
       patient_id:
         type: string
@@ -159,6 +115,33 @@ definitions:
         example: Rest and medication
         type: string
     type: object
+  models.RecordWithDetails:
+    properties:
+      created_at:
+        type: string
+      diagnosis:
+        type: string
+      doctor_full_name:
+        type: string
+      doctor_id:
+        type: integer
+      doctor_specialization:
+        type: string
+      iin:
+        type: string
+      patient_full_name:
+        type: string
+      patient_id:
+        type: integer
+      patient_iin:
+        type: string
+      record_id:
+        type: integer
+      test_result:
+        type: string
+      treatment_plan:
+        type: string
+    type: object
   models.User:
     properties:
       biometric_data_hash:
@@ -168,6 +151,8 @@ definitions:
       email:
         type: string
       first_name:
+        type: string
+      gender:
         type: string
       iin:
         type: string
@@ -184,6 +169,21 @@ definitions:
       user_id:
         type: integer
     type: object
+  models.UserInfoResponse:
+    properties:
+      doctor_details:
+        allOf:
+        - $ref: '#/definitions/models.Doctor'
+        description: Doctor-specific details if user is a doctor
+      patient_details:
+        allOf:
+        - $ref: '#/definitions/models.Patient'
+        description: Patient-specific details if user is a patient
+      user:
+        allOf:
+        - $ref: '#/definitions/models.User'
+        description: Basic user information
+    type: object
   models.UserRequest:
     properties:
       doctor_details:
@@ -191,6 +191,8 @@ definitions:
       email:
         type: string
       first_name:
+        type: string
+      gender:
         type: string
       iin:
         type: string
@@ -223,104 +225,6 @@ info:
   title: DiplomaAPI
   version: "1.0"
 paths:
-  /access-requests:
-    post:
-      consumes:
-      - application/json
-      description: Create a new access request for a patient's records
-      parameters:
-      - description: Access Request
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/models.AccessRequestCreate'
-      - description: Bearer
-        in: header
-        name: Authorization
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            $ref: '#/definitions/models.AccessRequestResponseSwagger'
-        "400":
-          description: Bad Request
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      summary: Create a new access request
-      tags:
-      - access requests
-  /access-requests/{id}/status:
-    put:
-      consumes:
-      - application/json
-      description: Update the status of an access request
-      parameters:
-      - description: Access Request ID
-        in: path
-        name: id
-        required: true
-        type: integer
-      - description: Status Update
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/models.AccessRequestStatusUpdate'
-      - description: Bearer
-        in: header
-        name: Authorization
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/models.AccessRequestResponseSwagger'
-        "400":
-          description: Bad Request
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      summary: Update access request status
-      tags:
-      - access requests
-  /access-requests/pending:
-    get:
-      description: Get all pending access requests for the authenticated patient
-      parameters:
-      - description: Bearer
-        in: header
-        name: Authorization
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            items:
-              $ref: '#/definitions/models.AccessRequestResponseSwagger'
-            type: array
-        "401":
-          description: Unauthorized
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      summary: Get pending access requests
-      tags:
-      - access requests
   /appointments:
     get:
       description: Fetch appointments for the authenticated doctor or patient
@@ -535,7 +439,9 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/models.Record'
+            items:
+              $ref: '#/definitions/models.RecordWithDetails'
+            type: array
         "404":
           description: Not Found
           schema:
@@ -642,7 +548,9 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/models.Record'
+            items:
+              $ref: '#/definitions/models.RecordWithDetails'
+            type: array
         "404":
           description: Not Found
           schema:
@@ -777,6 +685,32 @@ paths:
               type: string
             type: object
       summary: Request password reset
+      tags:
+      - users
+  /users/info/{iin}:
+    get:
+      description: Get user information including role-specific details (doctor or
+        patient)
+      parameters:
+      - description: User IIN
+        in: path
+        name: iin
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.UserInfoResponse'
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get detailed user information by IIN
       tags:
       - users
   /users/verify-otp:

@@ -1,0 +1,68 @@
+table_schema |         table_name         |     column_name     |          data_type          
+--------------+----------------------------+---------------------+-----------------------------
+ public       | access_log                 | log_id              | integer
+ public       | access_log                 | doctor_id           | integer
+ public       | access_log                 | record_id           | integer
+ public       | access_log                 | access_type         | text
+ public       | access_log                 | access_date         | timestamp without time zone
+ public       | access_requests            | id                  | integer
+ public       | access_requests            | doctor_id           | integer
+ public       | access_requests            | patient_id          | integer
+ public       | access_requests            | status              | character varying
+ public       | access_requests            | created_at          | timestamp without time zone
+ public       | access_requests            | expires_at          | timestamp without time zone
+ public       | access_requests            | access_granted_at   | timestamp without time zone
+ public       | access_requests            | access_expires_at   | timestamp without time zone
+ public       | appointments               | id                  | integer
+ public       | appointments               | doctor_id           | integer
+ public       | appointments               | patient_id          | integer
+ public       | appointments               | date                | timestamp without time zone
+ public       | blocks                     | block_id            | integer
+ public       | blocks                     | index               | integer
+ public       | blocks                     | timestamp           | timestamp without time zone
+ public       | blocks                     | transaction         | jsonb
+ public       | blocks                     | previous_hash       | text
+ public       | blocks                     | hash                | text
+ public       | doctor                     | doctor_id           | integer
+ public       | doctor                     | user_id             | integer
+ public       | doctor                     | specialization      | text
+ public       | face_verification_attempts | id                  | integer
+ public       | face_verification_attempts | user_id             | integer
+ public       | face_verification_attempts | access_request_id   | integer
+ public       | face_verification_attempts | photo_url           | text
+ public       | face_verification_attempts | verification_status | character varying
+ public       | face_verification_attempts | similarity_score    | double precision
+ public       | face_verification_attempts | created_at          | timestamp without time zone
+ public       | face_verification_attempts | verified_at         | timestamp without time zone
+ public       | medical_record             | record_id           | integer
+ public       | medical_record             | patient_id          | integer
+ public       | medical_record             | doctor_id           | integer
+ public       | medical_record             | diagnosis           | text
+ public       | medical_record             | treatment_plan      | text
+ public       | medical_record             | test_result         | text
+ public       | medical_record             | created_at          | timestamp without time zone
+ public       | notification               | notification_id     | integer
+ public       | notification               | user_id             | integer
+ public       | notification               | message             | text
+ public       | notification               | type                | text
+ public       | notification               | sent_at             | timestamp without time zone
+ public       | otp_verification           | iin                 | character varying
+ public       | otp_verification           | otp                 | character varying
+ public       | otp_verification           | expires_at          | timestamp without time zone
+ public       | patient                    | patient_id          | integer
+ public       | patient                    | user_id             | integer
+ public       | patient                    | date_of_birth       | date
+ public       | user                       | user_id             | integer
+ public       | user                       | first_name          | text
+ public       | user                       | last_name           | text
+ public       | user                       | email               | text
+ public       | user                       | phone_number        | text
+ public       | user                       | iin                 | text
+ public       | user                       | role                | text
+ public       | user                       | biometric_data_hash | text
+ public       | user                       | created_at          | timestamp without time zone
+ public       | user                       | password            | text
+ public       | user                       | password_changed    | boolean
+ public       | user                       | gender              | text
+ public       | user                       | photo_url           | text
+(65 rows)

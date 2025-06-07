@@ -14,6 +14,7 @@ type User struct {
 	CreatedAt         string `json:"created_at"`
 	Password          string `json:"password"`
 	PasswordChanged   bool   `json:"password_changed"`
+	Gender            string `json:"gender"`
 }
 
 type LoginRequest struct {
@@ -37,6 +38,7 @@ type UserRequest struct {
 	Iin            string          `json:"iin"`
 	Role           string          `json:"role"`
 	Password       string          `json:"password"`
+	Gender         string          `json:"gender"`
 	PatientDetails *PatientDetails `json:"patient_details,omitempty"`
 	DoctorDetails  *DoctorDetails  `json:"doctor_details,omitempty"`
 }
@@ -45,7 +47,6 @@ type PatientDetails struct {
 	PatientId   string `json:"patient_id"`
 	UserId      int    `json:"user_id"`
 	DateOfBirth string `json:"date_of_birth"`
-	Gender      string `json:"gender"`
 }
 
 type DoctorDetails struct {
@@ -64,7 +65,6 @@ type Patient struct {
 	PatientId   int    `json:"patient_id"`
 	UserId      int    `json:"user_id"`
 	DateOfBirth string `json:"date_of_birth"`
-	Gender      string `json:"gender"`
 }
 
 type Doctor struct {
@@ -121,11 +121,14 @@ type Transaction struct {
 // Appointment represents an appointment between a doctor and a patient
 
 type Appointment struct {
-	ID        int       `json:"id"`
-	DoctorID  int       `json:"doctor_id"`
-	PatientID int       `json:"patient_id"`
-	Iin       string    `json:"iin"`
-	Date      time.Time `json:"date"`
+	ID             int       `json:"id"`
+	DoctorID       int       `json:"doctor_id"`
+	PatientID      int       `json:"patient_id"`
+	Date           time.Time `json:"date"`
+	FirstName      string    `json:"first_name"`
+	LastName       string    `json:"last_name"`
+	Specialization string    `json:"specialization"`
+	Iin            string    `json:"iin"`
 }
 
 type ForgotPasswordRequest struct {
@@ -142,4 +145,19 @@ type OTPVerification struct {
 	Iin       string    `json:"iin"`
 	OTP       string    `json:"otp"`
 	ExpiresAt time.Time `json:"expires_at"`
+}
+
+// UserInfoResponse represents detailed user information including role-specific details
+type UserInfoResponse struct {
+	User           User     `json:"user"`                      // Basic user information
+	DoctorDetails  *Doctor  `json:"doctor_details,omitempty"`  // Doctor-specific details if user is a doctor
+	PatientDetails *Patient `json:"patient_details,omitempty"` // Patient-specific details if user is a patient
+}
+
+type RecordWithDetails struct {
+	Record
+	DoctorFullName   string `json:"doctor_full_name"`
+	DoctorSpeciality string `json:"doctor_specialization"`
+	PatientFullName  string `json:"patient_full_name"`
+	PatientIIN       string `json:"patient_iin"`
 }

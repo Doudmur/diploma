@@ -17,7 +17,7 @@ func LoadConfig() *Config {
 		DBHost:     getEnv("DB_HOST", "localhost"),
 		DBPort:     getEnv("DB_PORT", "5432"),
 		DBUser:     getEnv("DB_USER", "postgres"),
-		DBPassword: getEnv("DB_PASSWORD", "P@ssw0rd"),
+		DBPassword: getEnv("DB_PASSWORD", "Doudmur2003!"),
 		DBName:     getEnv("DB_NAME", "postgres"),
 	}
 }

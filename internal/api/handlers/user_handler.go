@@ -366,6 +366,31 @@ func generateOTP() string {
 	return fmt.Sprintf("%06d", otp)
 }
 
+// GetUserInfoByIIN godoc
+// @Summary      Get detailed user information by IIN
+// @Description  Get user information including role-specific details (doctor or patient)
+// @Tags         users
+// @Produce      json
+// @Param        iin  path  string  true  "User IIN"
+// @Success      200  {object}  models.UserInfoResponse
+// @Failure      404  {object}  map[string]string
+// @Router       /users/info/{iin} [get]
+func (h *UserHandler) GetUserInfoByIIN(c *gin.Context) {
+	iin := c.Param("iin")
+	if iin == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "IIN is required"})
+		return
+	}
+
+	userInfo, err := h.repo.GetUserInfoByIIN(iin)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "User not found", "Detailed": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, userInfo)
+}
+
 //// GetUserByIIN godoc
 //// @Summary      Get a user by IIN
 //// @Description  Fetch a user by its IIN

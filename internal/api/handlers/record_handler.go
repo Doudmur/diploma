@@ -3,7 +3,6 @@ package handlers
 import (
 	"diploma/internal/models"
 	"diploma/internal/repositories"
-	"fmt"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"strconv"
@@ -30,12 +29,17 @@ func NewRecordHandler(recordRepo *repositories.RecordRepository, userRepo *repos
 // @Produce      json
 // @Param        iin  path  string  true  "IIN"
 // @Param 		 Authorization header string true "Bearer"
-// @Success      200  {object}  models.Record
+// @Success      200  {array}  models.RecordWithDetails
 // @Failure      404  {object}  map[string]string
 // @Router       /records/{iin} [get]
 func (h *RecordHandler) GetRecordByIIN(c *gin.Context) {
 	userID := c.GetUint("user_id")
-	doctor, err := h.UserRepo.GetDoctorByUserId(strconv.Itoa(int(userID)))
+	//doctor, err := h.UserRepo.GetDoctorByUserId(strconv.Itoa(int(userID)))
+	//if err != nil {
+	//	c.JSON(http.StatusUnauthorized, gin.H{"error": "Doctor not found"})
+	//	return
+	//}
+	_, err := h.UserRepo.GetDoctorByUserId(strconv.Itoa(int(userID)))
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Doctor not found"})
 		return
@@ -48,30 +52,35 @@ func (h *RecordHandler) GetRecordByIIN(c *gin.Context) {
 		return
 	}
 
-	patient, err := h.PatientRepo.GetPatientByUserID(user.UserId)
+	//patient, err := h.PatientRepo.GetPatientByUserID(user.UserId)
+	//if err != nil {
+	//	c.JSON(http.StatusNotFound, gin.H{"error": "Patient not found"})
+	//	return
+	//}
+	_, err = h.PatientRepo.GetPatientByUserID(user.UserId)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Patient not found"})
 		return
 	}
 
-	// Check if doctor has valid access
-	hasAccess, err := h.RecordRepo.HasValidAccess(doctor.DoctorId, patient.PatientId)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
+	//// Check if doctor has valid access
+	//hasAccess, err := h.RecordRepo.HasValidAccess(doctor.DoctorId, patient.PatientId)
+	//if err != nil {
+	//	c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	//	return
+	//}
+	//
+	//if !hasAccess {
+	//	c.JSON(http.StatusForbidden, gin.H{"error": "No valid access to patient records"})
+	//	return
+	//}
 
-	if !hasAccess {
-		c.JSON(http.StatusForbidden, gin.H{"error": "No valid access to patient records"})
-		return
-	}
-
-	record, err := h.RecordRepo.GetRecordByIIN(iin)
+	records, err := h.RecordRepo.GetRecordsByIIN(iin)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Record not found"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "Records not found"})
 		return
 	}
-	c.JSON(http.StatusOK, record)
+	c.JSON(http.StatusOK, records)
 }
 
 // GetRecordByClaim godoc
@@ -80,18 +89,17 @@ func (h *RecordHandler) GetRecordByIIN(c *gin.Context) {
 // @Tags         medical records
 // @Produce      json
 // @Param 		 Authorization header string true "Bearer"
-// @Success      200  {object}  models.Record
+// @Success      200  {array}  models.RecordWithDetails
 // @Failure      404  {object}  map[string]string
 // @Router       /records [get]
 func (h *RecordHandler) GetRecordByClaim(c *gin.Context) {
 	userID := c.GetUint("user_id")
-	fmt.Print(userID)
-	record, err := h.RecordRepo.GetRecordByPatientID(int(userID))
+	records, err := h.RecordRepo.GetRecordsByPatientID(int(userID))
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Record not found"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "Records not found"})
 		return
 	}
-	c.JSON(http.StatusOK, record)
+	c.JSON(http.StatusOK, records)
 }
 
 // CreateRecord godoc

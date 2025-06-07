@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"diploma/internal/models"
 	"fmt"
+	"strconv"
 	"time"
 )
 
@@ -45,11 +46,10 @@ func (r *UserRepository) GetUserByID(id int) (*models.User, error) {
 }
 
 func (r *UserRepository) GetUserByIin(iin string) (*models.User, error) {
-	fmt.Printf(iin)
-	row := r.db.QueryRow("SELECT * FROM public.user WHERE iin=$1", iin)
 
+	row := r.db.QueryRow("SELECT * FROM public.user WHERE iin=$1", iin)
 	var user models.User
-	if err := row.Scan(&user.UserId, &user.FirstName, &user.LastName, &user.Email, &user.PhoneNumber, &user.Iin, &user.Role, &user.BiometricDataHash, &user.CreatedAt, &user.Password, &user.PasswordChanged); err != nil {
+	if err := row.Scan(&user.UserId, &user.FirstName, &user.LastName, &user.Email, &user.PhoneNumber, &user.Iin, &user.Role, &user.BiometricDataHash, &user.CreatedAt, &user.Password, &user.PasswordChanged, &user.Gender); err != nil {
 		return nil, err
 	}
 	return &user, nil
@@ -59,7 +59,7 @@ func (r *UserRepository) GetUserByEmail(email string) (*models.User, error) {
 	row := r.db.QueryRow("SELECT * FROM public.user WHERE email=$1", email)
 
 	var user models.User
-	if err := row.Scan(&user.UserId, &user.FirstName, &user.LastName, &user.Email, &user.PhoneNumber, &user.Iin, &user.Role, &user.BiometricDataHash, &user.CreatedAt, &user.Password, &user.PasswordChanged); err != nil {
+	if err := row.Scan(&user.UserId, &user.FirstName, &user.LastName, &user.Email, &user.PhoneNumber, &user.Iin, &user.Role, &user.BiometricDataHash, &user.CreatedAt, &user.Password, &user.PasswordChanged, &user.Gender); err != nil {
 		return nil, err
 	}
 	return &user, nil
@@ -93,8 +93,8 @@ func (r *UserRepository) CreateUser(user *models.UserRequest) error {
 
 	// Create user
 	err = tx.QueryRow(
-		"INSERT INTO public.user (first_name, last_name, email, phone_number, iin, role, password, password_changed) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING user_id",
-		user.FirstName, user.LastName, user.Email, user.PhoneNumber, user.Iin, user.Role, user.Password, false,
+		"INSERT INTO public.user (first_name, last_name, email, phone_number, iin, role, password, password_changed, gender) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING user_id",
+		user.FirstName, user.LastName, user.Email, user.PhoneNumber, user.Iin, user.Role, user.Password, false, user.Gender,
 	).Scan(&user.UserId)
 	if err != nil {
 		return err
@@ -107,8 +107,8 @@ func (r *UserRepository) CreateUser(user *models.UserRequest) error {
 		}
 		user.PatientDetails.UserId = user.UserId
 		err = tx.QueryRow(
-			"INSERT INTO public.patient (user_id, date_of_birth, gender) VALUES ($1, $2, $3) RETURNING patient_id",
-			user.PatientDetails.UserId, user.PatientDetails.DateOfBirth, user.PatientDetails.Gender,
+			"INSERT INTO public.patient (user_id, date_of_birth) VALUES ($1, $2) RETURNING patient_id",
+			user.PatientDetails.UserId, user.PatientDetails.DateOfBirth,
 		).Scan(&user.PatientDetails.PatientId)
 		if err != nil {
 			return err
@@ -131,7 +131,7 @@ func (r *UserRepository) CreateUser(user *models.UserRequest) error {
 }
 
 func (r *UserRepository) CreatePatient(patient *models.PatientDetails) error {
-	err := r.db.QueryRow("INSERT INTO public.patient (user_id, date_of_birth, gender) VALUES ($1, $2, $3) RETURNING patient_id", patient.UserId, patient.DateOfBirth, patient.Gender).Scan(&patient.PatientId)
+	err := r.db.QueryRow("INSERT INTO public.patient (user_id, date_of_birth) VALUES ($1, $2) RETURNING patient_id", patient.UserId, patient.DateOfBirth).Scan(&patient.PatientId)
 	return err
 }
 
@@ -234,6 +234,46 @@ func (r *UserRepository) GetDoctorByID(doctorID int) (*models.Doctor, error) {
 		return nil, err
 	}
 	return &doctor, nil
+}
+
+func (r *UserRepository) GetUserInfoByIIN(iin string) (*models.UserInfoResponse, error) {
+	// Get user information
+	user, err := r.GetUserByIin(iin)
+
+	if err != nil {
+		return nil, err
+	}
+
+	response := &models.UserInfoResponse{
+		User: *user,
+	}
+	// Get role-specific information
+	switch user.Role {
+	case "doctor":
+		doctor, err := r.GetDoctorByUserId(strconv.Itoa(user.UserId))
+		if err != nil {
+			return nil, err
+		}
+		response.DoctorDetails = doctor
+	case "patient":
+		patient, err := r.GetPatientByUserID(user.UserId)
+		if err != nil {
+			return nil, err
+		}
+		response.PatientDetails = patient
+	}
+
+	return response, nil
+}
+
+func (r *UserRepository) GetPatientByUserID(userID int) (*models.Patient, error) {
+	row := r.db.QueryRow("SELECT * FROM public.patient WHERE user_id=$1", userID)
+
+	var patient models.Patient
+	if err := row.Scan(&patient.PatientId, &patient.UserId, &patient.DateOfBirth); err != nil {
+		return nil, err
+	}
+	return &patient, nil
 }
 
 //func (r *BookRepository) UpdateBook(book *models.Book) error {

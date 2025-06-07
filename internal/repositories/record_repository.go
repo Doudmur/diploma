@@ -15,11 +15,12 @@ type RecordRepository struct {
 func NewRecordRepository(db *sql.DB) *RecordRepository {
 	return &RecordRepository{db: db, blockchain: blockchain.NewBlockchain(db)}
 }
+
 func (r *RecordRepository) GetRecordByPatientID(UserId int) (*models.Record, error) {
 	row := r.db.QueryRow("SELECT * FROM public.patient WHERE user_id=$1", UserId)
 
 	var patient models.Patient
-	if err := row.Scan(&patient.PatientId, &patient.UserId, &patient.DateOfBirth, &patient.Gender); err != nil {
+	if err := row.Scan(&patient.PatientId, &patient.UserId, &patient.DateOfBirth); err != nil {
 		return nil, err
 	}
 	row = r.db.QueryRow("SELECT * FROM public.medical_record WHERE patient_id=$1", patient.PatientId)
@@ -115,4 +116,110 @@ func (r *RecordRepository) HasValidAccess(doctorID, patientID int) (bool, error)
 	var exists bool
 	err := r.db.QueryRow(query, doctorID, patientID).Scan(&exists)
 	return exists, err
+}
+
+func (r *RecordRepository) GetRecordsByPatientID(UserId int) ([]models.RecordWithDetails, error) {
+	row := r.db.QueryRow("SELECT * FROM public.patient WHERE user_id=$1", UserId)
+
+	var patient models.Patient
+	if err := row.Scan(&patient.PatientId, &patient.UserId, &patient.DateOfBirth); err != nil {
+		return nil, err
+	}
+
+	query := `
+		SELECT r.*, 
+			CONCAT(du.first_name, ' ', du.last_name) as doctor_full_name,
+			d.specialization as doctor_specialization,
+			CONCAT(pu.first_name, ' ', pu.last_name) as patient_full_name,
+			pu.iin as patient_iin
+		FROM public.medical_record r
+		JOIN public.doctor d ON r.doctor_id = d.doctor_id
+		JOIN public.user du ON d.user_id = du.user_id
+		JOIN public.patient p ON r.patient_id = p.patient_id
+		JOIN public.user pu ON p.user_id = pu.user_id
+		WHERE r.patient_id = $1
+		ORDER BY r.created_at DESC`
+
+	rows, err := r.db.Query(query, patient.PatientId)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var records []models.RecordWithDetails
+	for rows.Next() {
+		var record models.RecordWithDetails
+		if err := rows.Scan(
+			&record.RecordId,
+			&record.PatientId,
+			&record.DoctorId,
+			&record.Diagnosis,
+			&record.TreatmentPlan,
+			&record.TestResult,
+			&record.CreatedAt,
+			&record.DoctorFullName,
+			&record.DoctorSpeciality,
+			&record.PatientFullName,
+			&record.PatientIIN,
+		); err != nil {
+			return nil, err
+		}
+		records = append(records, record)
+	}
+	return records, nil
+}
+
+func (r *RecordRepository) GetRecordsByIIN(iin string) ([]models.RecordWithDetails, error) {
+	var userId int
+	var passwordChanged bool
+	if err := r.db.QueryRow("SELECT user_id, password_changed FROM public.user WHERE iin=$1", iin).Scan(&userId, &passwordChanged); err != nil {
+		return nil, err
+	}
+
+	var patientId int
+	if err := r.db.QueryRow("SELECT patient_id FROM public.patient WHERE user_id=$1", userId).Scan(&patientId); err != nil {
+		return nil, err
+	}
+
+	query := `
+		SELECT r.*, 
+			CONCAT(du.first_name, ' ', du.last_name) as doctor_full_name,
+			d.specialization as doctor_specialization,
+			CONCAT(pu.first_name, ' ', pu.last_name) as patient_full_name,
+			pu.iin as patient_iin
+		FROM public.medical_record r
+		JOIN public.doctor d ON r.doctor_id = d.doctor_id
+		JOIN public.user du ON d.user_id = du.user_id
+		JOIN public.patient p ON r.patient_id = p.patient_id
+		JOIN public.user pu ON p.user_id = pu.user_id
+		WHERE r.patient_id = $1
+		ORDER BY r.created_at DESC`
+
+	rows, err := r.db.Query(query, patientId)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var records []models.RecordWithDetails
+	for rows.Next() {
+		var record models.RecordWithDetails
+		if err := rows.Scan(
+			&record.RecordId,
+			&record.PatientId,
+			&record.DoctorId,
+			&record.Diagnosis,
+			&record.TreatmentPlan,
+			&record.TestResult,
+			&record.CreatedAt,
+			&record.DoctorFullName,
+			&record.DoctorSpeciality,
+			&record.PatientFullName,
+			&record.PatientIIN,
+		); err != nil {
+			return nil, err
+		}
+		records = append(records, record)
+	}
+	return records, nil
 }

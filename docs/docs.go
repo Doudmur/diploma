@@ -15,154 +15,6 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/access-requests": {
-            "post": {
-                "description": "Create a new access request for a patient's records",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "access requests"
-                ],
-                "summary": "Create a new access request",
-                "parameters": [
-                    {
-                        "description": "Access Request",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/models.AccessRequestCreate"
-                        }
-                    },
-                    {
-                        "type": "string",
-                        "description": "Bearer",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "description": "Created",
-                        "schema": {
-                            "$ref": "#/definitions/models.AccessRequestResponseSwagger"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/access-requests/pending": {
-            "get": {
-                "description": "Get all pending access requests for the authenticated patient",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "access requests"
-                ],
-                "summary": "Get pending access requests",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Bearer",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/models.AccessRequestResponseSwagger"
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/access-requests/{id}/status": {
-            "put": {
-                "description": "Update the status of an access request",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "access requests"
-                ],
-                "summary": "Update access request status",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "Access Request ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "Status Update",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/models.AccessRequestStatusUpdate"
-                        }
-                    },
-                    {
-                        "type": "string",
-                        "description": "Bearer",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/models.AccessRequestResponseSwagger"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            }
-        },
         "/appointments": {
             "get": {
                 "description": "Fetch appointments for the authenticated doctor or patient",
@@ -488,7 +340,10 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/models.Record"
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.RecordWithDetails"
+                            }
                         }
                     },
                     "404": {
@@ -648,7 +503,10 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/models.Record"
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.RecordWithDetails"
+                            }
                         }
                     },
                     "404": {
@@ -785,6 +643,44 @@ const docTemplate = `{
                 }
             }
         },
+        "/users/info/{iin}": {
+            "get": {
+                "description": "Get user information including role-specific details (doctor or patient)",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "users"
+                ],
+                "summary": "Get detailed user information by IIN",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "User IIN",
+                        "name": "iin",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.UserInfoResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/users/verify-otp": {
             "post": {
                 "description": "Verify OTP and set password_changed flag to false",
@@ -904,74 +800,6 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "models.AccessRequestCreate": {
-            "type": "object",
-            "properties": {
-                "iin": {
-                    "type": "string",
-                    "example": "123456789012"
-                }
-            }
-        },
-        "models.AccessRequestResponseSwagger": {
-            "type": "object",
-            "properties": {
-                "access_expires_at": {
-                    "type": "string",
-                    "example": "2024-03-14T13:30:00Z"
-                },
-                "access_granted_at": {
-                    "type": "string",
-                    "example": "2024-03-14T12:30:00Z"
-                },
-                "created_at": {
-                    "type": "string",
-                    "example": "2024-03-14T12:00:00Z"
-                },
-                "doctor_id": {
-                    "type": "integer",
-                    "example": 1
-                },
-                "doctor_name": {
-                    "type": "string",
-                    "example": "John Doe"
-                },
-                "expires_at": {
-                    "type": "string",
-                    "example": "2024-03-14T13:00:00Z"
-                },
-                "id": {
-                    "type": "integer",
-                    "example": 1
-                },
-                "patient_id": {
-                    "type": "integer",
-                    "example": 1
-                },
-                "status": {
-                    "type": "string",
-                    "enum": [
-                        "pending",
-                        "granted",
-                        "rejected"
-                    ],
-                    "example": "pending"
-                }
-            }
-        },
-        "models.AccessRequestStatusUpdate": {
-            "type": "object",
-            "properties": {
-                "status": {
-                    "type": "string",
-                    "enum": [
-                        "granted",
-                        "rejected"
-                    ],
-                    "example": "granted"
-                }
-            }
-        },
         "models.Appointment": {
             "type": "object",
             "properties": {
@@ -1022,6 +850,20 @@ const docTemplate = `{
                 }
             }
         },
+        "models.Doctor": {
+            "type": "object",
+            "properties": {
+                "doctor_id": {
+                    "type": "integer"
+                },
+                "specialization": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "integer"
+                }
+            }
+        },
         "models.DoctorDetails": {
             "type": "object",
             "properties": {
@@ -1061,9 +903,6 @@ const docTemplate = `{
                 "date_of_birth": {
                     "type": "string"
                 },
-                "gender": {
-                    "type": "string"
-                },
                 "patient_id": {
                     "type": "integer"
                 },
@@ -1076,9 +915,6 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "date_of_birth": {
-                    "type": "string"
-                },
-                "gender": {
                     "type": "string"
                 },
                 "patient_id": {
@@ -1139,6 +975,47 @@ const docTemplate = `{
                 }
             }
         },
+        "models.RecordWithDetails": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "diagnosis": {
+                    "type": "string"
+                },
+                "doctor_full_name": {
+                    "type": "string"
+                },
+                "doctor_id": {
+                    "type": "integer"
+                },
+                "doctor_specialization": {
+                    "type": "string"
+                },
+                "iin": {
+                    "type": "string"
+                },
+                "patient_full_name": {
+                    "type": "string"
+                },
+                "patient_id": {
+                    "type": "integer"
+                },
+                "patient_iin": {
+                    "type": "string"
+                },
+                "record_id": {
+                    "type": "integer"
+                },
+                "test_result": {
+                    "type": "string"
+                },
+                "treatment_plan": {
+                    "type": "string"
+                }
+            }
+        },
         "models.User": {
             "type": "object",
             "properties": {
@@ -1152,6 +1029,9 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "first_name": {
+                    "type": "string"
+                },
+                "gender": {
                     "type": "string"
                 },
                 "iin": {
@@ -1177,6 +1057,35 @@ const docTemplate = `{
                 }
             }
         },
+        "models.UserInfoResponse": {
+            "type": "object",
+            "properties": {
+                "doctor_details": {
+                    "description": "Doctor-specific details if user is a doctor",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.Doctor"
+                        }
+                    ]
+                },
+                "patient_details": {
+                    "description": "Patient-specific details if user is a patient",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.Patient"
+                        }
+                    ]
+                },
+                "user": {
+                    "description": "Basic user information",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.User"
+                        }
+                    ]
+                }
+            }
+        },
         "models.UserRequest": {
             "type": "object",
             "properties": {
@@ -1187,6 +1096,9 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "first_name": {
+                    "type": "string"
+                },
+                "gender": {
                     "type": "string"
                 },
                 "iin": {

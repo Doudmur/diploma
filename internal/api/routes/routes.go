@@ -35,9 +35,6 @@ func SetupRouter() *gin.Engine {
 	recordRepo := repositories.NewRecordRepository(db)
 	recordHandler := handlers.NewRecordHandler(recordRepo, userRepo, patientRepo)
 
-	accessRequestRepo := repositories.NewAccessRequestRepository(db)
-	accessRequestHandler := handlers.NewAccessRequestHandler(accessRequestRepo, userRepo, patientRepo)
-
 	// Swagger route
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
@@ -57,6 +54,7 @@ func SetupRouter() *gin.Engine {
 		{
 			usersGroup.GET("/", userHandler.GetUsers)
 			usersGroup.GET("/:id", userHandler.GetUserByID)
+			usersGroup.GET("/info/:iin", userHandler.GetUserInfoByIIN)
 			usersGroup.POST("/", userHandler.CreateUser)
 			usersGroup.DELETE("/:id", userHandler.DeleteUser)
 		}
@@ -82,14 +80,6 @@ func SetupRouter() *gin.Engine {
 			appointmentsGroup.POST("/", auth.RoleMiddleware([]string{"doctor"}), appointmentHandler.CreateAppointment)
 			appointmentsGroup.DELETE("/:id", auth.RoleMiddleware([]string{"doctor"}), appointmentHandler.DeleteAppointment)
 			appointmentsGroup.GET("/", appointmentHandler.GetAppointments)
-		}
-
-		accessRequestsGroup := v1.Group("/access-requests")
-		accessRequestsGroup.Use(auth.AuthMiddleware())
-		{
-			accessRequestsGroup.POST("/", auth.RoleMiddleware([]string{"doctor"}), accessRequestHandler.CreateAccessRequest)
-			accessRequestsGroup.GET("/pending", auth.RoleMiddleware([]string{"patient"}), accessRequestHandler.GetPendingAccessRequests)
-			accessRequestsGroup.PUT("/:id/status", auth.RoleMiddleware([]string{"patient"}), accessRequestHandler.UpdateAccessRequestStatus)
 		}
 
 	}
