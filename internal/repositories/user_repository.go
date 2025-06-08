@@ -276,6 +276,11 @@ func (r *UserRepository) GetPatientByUserID(userID int) (*models.Patient, error)
 	return &patient, nil
 }
 
+func (r *UserRepository) UpdateUserPhoto(userID int, photo []byte) error {
+	_, err := r.db.Exec("UPDATE public.user SET photo = $1 WHERE user_id = $2", photo, userID)
+	return err
+}
+
 //func (r *BookRepository) UpdateBook(book *models.Book) error {
 //	_, err := r.db.Exec("UPDATE books SET title = $1, author = $2 WHERE id = $3", book.Title, book.Author, book.ID)
 //	return err

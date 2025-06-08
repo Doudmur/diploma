@@ -1,13 +1,17 @@
 package handlers
 
 import (
+	"bytes"
 	"diploma/internal/auth"
 	"diploma/internal/models"
 	"diploma/internal/repositories"
 	"diploma/internal/scripts"
+	"encoding/json"
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"io"
 	"math/rand"
+	"mime/multipart"
 	"net/http"
 	"strconv"
 	"time"
@@ -123,7 +127,97 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusCreated, userRequest)
+	c.JSON(http.StatusCreated, gin.H{
+		"message": "User created successfully. Please upload your photo for face verification.",
+		"user_id": userRequest.UserId,
+	})
+}
+
+// UploadPhoto godoc
+// @Summary      Upload user photo for face verification
+// @Description  Upload and verify user's photo
+// @Tags         auth
+// @Accept       multipart/form-data
+// @Produce      json
+// @Param        user_id formData int true "User ID"
+// @Param        photo formData file true "User Photo"
+// @Success      200 {object} map[string]string
+// @Failure      400 {object} map[string]string
+// @Router       /auth/upload-photo [post]
+func (h *UserHandler) UploadPhoto(c *gin.Context) {
+	userID, err := strconv.Atoi(c.PostForm("user_id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID"})
+		return
+	}
+
+	// Get photo file
+	file, err := c.FormFile("photo")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Photo is required"})
+		return
+	}
+
+	// Open the file
+	openedFile, err := file.Open()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to open photo"})
+		return
+	}
+	defer openedFile.Close()
+
+	// Read file content
+	var buf bytes.Buffer
+	if _, err := io.Copy(&buf, openedFile); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to read photo"})
+		return
+	}
+	photoBytes := buf.Bytes()
+
+	// Send to Python face detection
+	var b bytes.Buffer
+	w := multipart.NewWriter(&b)
+	fw, err := w.CreateFormFile("file", file.Filename)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to prepare photo for face detection"})
+		return
+	}
+	fw.Write(photoBytes)
+	w.Close()
+
+	req, err := http.NewRequest("POST", "http://134.122.84.85:8000/detect_face/", &b)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create face detection request"})
+		return
+	}
+	req.Header.Set("Content-Type", w.FormDataContentType())
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil || resp.StatusCode != 200 {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to validate face"})
+		return
+	}
+	defer resp.Body.Close()
+
+	var detectResp models.DetectResponse
+	if err := json.NewDecoder(resp.Body).Decode(&detectResp); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to decode face detection response"})
+		return
+	}
+
+	if !detectResp.HasFace || detectResp.FaceCount != 1 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Image must contain exactly one face"})
+		return
+	}
+
+	// Update user's photo in database
+	err = h.repo.UpdateUserPhoto(userID, photoBytes)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save photo"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Photo uploaded and verified successfully"})
 }
 
 // Login godoc

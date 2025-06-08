@@ -17,6 +17,20 @@ type User struct {
 	Gender            string `json:"gender"`
 }
 
+// ... existing code ...
+
+type DetectResponse struct {
+	HasFace   bool   `json:"has_face"`
+	FaceCount int    `json:"face_count"`
+	Message   string `json:"message"`
+}
+
+type SimilarityResponse struct {
+	Distance float64 `json:"distance"`
+	Match    bool    `json:"match"`
+	Message  string  `json:"message"`
+}
+
 type LoginRequest struct {
 	Iin      string `json:"iin"`
 	Password string `json:"password"`

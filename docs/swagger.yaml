@@ -6,12 +6,18 @@ definitions:
         type: string
       doctor_id:
         type: integer
+      first_name:
+        type: string
       id:
         type: integer
       iin:
         type: string
+      last_name:
+        type: string
       patient_id:
         type: integer
+      specialization:
+        type: string
     type: object
   models.AppointmentRequest:
     properties:
@@ -328,6 +334,58 @@ paths:
       summary: Delete an appointment
       tags:
       - appointments
+  /approve:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Compares uploaded photo with stored one
+      parameters:
+      - description: Username
+        in: formData
+        name: username
+        required: true
+        type: string
+      - description: New face photo
+        in: formData
+        name: photo
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Approve secure action by verifying face
+      tags:
+      - auth
   /auth/login:
     post:
       consumes:
@@ -382,6 +440,40 @@ paths:
               type: string
             type: object
       summary: Create a new user
+      tags:
+      - auth
+  /auth/upload-photo:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Upload and verify user's photo
+      parameters:
+      - description: User ID
+        in: formData
+        name: user_id
+        required: true
+        type: integer
+      - description: User Photo
+        in: formData
+        name: photo
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Upload user photo for face verification
       tags:
       - auth
   /patients:
@@ -560,6 +652,51 @@ paths:
       summary: Get a record by IIN
       tags:
       - medical records
+  /register:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Uploads photo and saves if it contains one face
+      parameters:
+      - description: Username
+        in: formData
+        name: username
+        required: true
+        type: string
+      - description: Password
+        in: formData
+        name: password
+        required: true
+        type: string
+      - description: Face photo
+        in: formData
+        name: photo
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Register user with photo
+      tags:
+      - auth
   /users:
     get:
       description: Fetch a list of all users

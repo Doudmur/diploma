@@ -45,6 +45,7 @@ func SetupRouter() *gin.Engine {
 		{
 			authGroup.POST("/register", userHandler.CreateUser)
 			authGroup.POST("/login", userHandler.Login)
+			authGroup.POST("/upload-photo", userHandler.UploadPhoto)
 			authGroup.POST("/change-password", userHandler.ChangePassword)
 			authGroup.POST("/forgot-password", userHandler.ForgotPassword)
 			authGroup.POST("/verify-otp", userHandler.VerifyOTP)
