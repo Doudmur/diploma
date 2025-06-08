@@ -46,9 +46,6 @@ func SetupRouter() *gin.Engine {
 			authGroup.POST("/register", userHandler.CreateUser)
 			authGroup.POST("/login", userHandler.Login)
 			authGroup.POST("/upload-photo", userHandler.UploadPhoto)
-			authGroup.POST("/change-password", userHandler.ChangePassword)
-			authGroup.POST("/forgot-password", userHandler.ForgotPassword)
-			authGroup.POST("/verify-otp", userHandler.VerifyOTP)
 		}
 
 		usersGroup := v1.Group("/users")
@@ -58,6 +55,9 @@ func SetupRouter() *gin.Engine {
 			usersGroup.GET("/info/:iin", userHandler.GetUserInfoByIIN)
 			usersGroup.POST("/", userHandler.CreateUser)
 			usersGroup.DELETE("/:id", userHandler.DeleteUser)
+			usersGroup.POST("/change-password", userHandler.ChangePassword)
+			usersGroup.POST("/forgot-password", userHandler.ForgotPassword)
+			usersGroup.POST("/verify-otp", userHandler.VerifyOTP)
 		}
 
 		patientsGroup := v1.Group("/patients")
@@ -88,6 +88,7 @@ func SetupRouter() *gin.Engine {
 		accessGroup.Use(auth.AuthMiddleware())
 		{
 			accessGroup.POST("/request", userHandler.CreateAccessRequest)
+			accessGroup.GET("/requests", userHandler.GetAccessRequests)
 		}
 
 	}

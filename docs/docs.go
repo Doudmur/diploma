@@ -83,6 +83,56 @@ const docTemplate = `{
                 }
             }
         },
+        "/access/requests": {
+            "get": {
+                "description": "Get pending and active access requests for the authenticated user",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "access"
+                ],
+                "summary": "Get access requests",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.AccessRequest"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/appointments": {
             "get": {
                 "description": "Fetch appointments for the authenticated doctor or patient",
@@ -830,13 +880,6 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/models.ChangePasswordRequest"
                         }
-                    },
-                    {
-                        "type": "string",
-                        "description": "Bearer",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
                     }
                 ],
                 "responses": {
@@ -1064,6 +1107,35 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "models.AccessRequest": {
+            "type": "object",
+            "properties": {
+                "access_expires_at": {
+                    "type": "string"
+                },
+                "access_granted_at": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "doctor_id": {
+                    "type": "integer"
+                },
+                "expires_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "patient_id": {
+                    "type": "integer"
+                },
+                "status": {
+                    "type": "string"
+                }
+            }
+        },
         "models.AccessRequestResponse": {
             "type": "object",
             "properties": {
@@ -1346,6 +1418,12 @@ const docTemplate = `{
                 },
                 "phone_number": {
                     "type": "string"
+                },
+                "photo": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
                 },
                 "role": {
                     "type": "string"

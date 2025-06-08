@@ -104,15 +104,15 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
 	otp := scripts.GenerateOTP()
 
 	// Send OTP to email
-	subject := "Generated password to login in MedicineApp"
-	body := "Your password generated to first login: " + otp
+	subject := "Your initial password for MedicineApp"
+	body := "Your initial password is: " + otp + "\nPlease change your password after first login."
 	err := scripts.SendMail(userRequest.Email, subject, body)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to send email"})
 		return
 	}
 
-	// Hash password
+	// Hash OTP as initial password
 	hashedPassword, err := auth.HashPassword(otp)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to hash password"})
@@ -277,7 +277,6 @@ func (h *UserHandler) Login(c *gin.Context) {
 // @Accept       json
 // @Produce      json
 // @Param        request  body  models.ChangePasswordRequest  true  "Change Password Request"
-// @Param        Authorization header string true "Bearer"
 // @Success      200  {object}  map[string]string
 // @Failure      400  {object}  map[string]string
 // @Router       /users/change-password [post]
@@ -294,8 +293,9 @@ func (h *UserHandler) ChangePassword(c *gin.Context) {
 		return
 	}
 
+	// Check if old password (OTP) matches
 	if !auth.CheckPasswordHash(request.OldPassword, user.Password) {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid old password"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid OTP"})
 		return
 	}
 
@@ -539,4 +539,58 @@ func (h *UserHandler) CreateAccessRequest(c *gin.Context) {
 		Status:    accessRequest.Status,
 		ExpiresAt: accessRequest.ExpiresAt,
 	})
+}
+
+// GetAccessRequests godoc
+// @Summary      Get access requests
+// @Description  Get pending and active access requests for the authenticated user
+// @Tags         access
+// @Produce      json
+// @Param        Authorization header string true "Bearer"
+// @Success      200 {array} models.AccessRequest
+// @Failure      401 {object} map[string]string
+// @Failure      403 {object} map[string]string
+// @Router       /access/requests [get]
+func (h *UserHandler) GetAccessRequests(c *gin.Context) {
+	// Get user ID from context
+	userID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	// Get user role from context
+	role, exists := c.Get("role")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	var requests []models.AccessRequest
+
+	if role == "doctor" {
+		// Get doctor ID
+		doctorID, err := h.repo.GetDoctorIDByUserID(int(userID.(uint)))
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get doctor information"})
+			return
+		}
+		requests, err = h.repo.GetDoctorAccessRequests(doctorID)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get doctor access requests", "Detailed": err.Error()})
+		}
+	} else if role == "patient" {
+		// Get patient ID
+		patientID, err := h.repo.GetPatientIDByUserID(int(userID.(uint)))
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get patient information"})
+			return
+		}
+		requests, err = h.repo.GetPatientAccessRequests(patientID)
+	} else {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get access requests"})
+		return
+	}
+
+	c.JSON(http.StatusOK, requests)
 }

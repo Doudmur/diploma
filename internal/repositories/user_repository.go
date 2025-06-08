@@ -322,6 +322,102 @@ func (r *UserRepository) GetDoctorIDByUserID(userID int) (int, error) {
 	return doctorID, err
 }
 
+func (r *UserRepository) GetDoctorAccessRequests(doctorID int) ([]models.AccessRequest, error) {
+	rows, err := r.db.Query(`
+		SELECT ar.id, ar.doctor_id, ar.patient_id, ar.status, ar.created_at, ar.expires_at, 
+		       ar.access_granted_at, ar.access_expires_at
+		FROM access_requests ar
+		WHERE ar.doctor_id = $1 
+		AND (
+			(ar.status = 'pending' AND ar.expires_at > NOW()) OR 
+			(ar.status = 'granted' AND ar.access_expires_at > NOW())
+		)
+		ORDER BY ar.created_at DESC
+	`, doctorID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var requests []models.AccessRequest
+	for rows.Next() {
+		var request models.AccessRequest
+		var accessGrantedAt, accessExpiresAt sql.NullTime
+		err := rows.Scan(
+			&request.ID,
+			&request.DoctorID,
+			&request.PatientID,
+			&request.Status,
+			&request.CreatedAt,
+			&request.ExpiresAt,
+			&accessGrantedAt,
+			&accessExpiresAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+		if accessGrantedAt.Valid {
+			request.AccessGrantedAt = accessGrantedAt.Time
+		}
+		if accessExpiresAt.Valid {
+			request.AccessExpiresAt = accessExpiresAt.Time
+		}
+		requests = append(requests, request)
+	}
+	return requests, nil
+}
+
+func (r *UserRepository) GetPatientAccessRequests(patientID int) ([]models.AccessRequest, error) {
+	rows, err := r.db.Query(`
+		SELECT ar.id, ar.doctor_id, ar.patient_id, ar.status, ar.created_at, ar.expires_at, 
+		       ar.access_granted_at, ar.access_expires_at
+		FROM access_requests ar
+		WHERE ar.patient_id = $1 
+		AND (
+			(ar.status = 'pending' AND ar.expires_at > NOW()) OR 
+			(ar.status = 'granted' AND ar.access_expires_at > NOW())
+		)
+		ORDER BY ar.created_at DESC
+	`, patientID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var requests []models.AccessRequest
+	for rows.Next() {
+		var request models.AccessRequest
+		var accessGrantedAt, accessExpiresAt sql.NullTime
+		err := rows.Scan(
+			&request.ID,
+			&request.DoctorID,
+			&request.PatientID,
+			&request.Status,
+			&request.CreatedAt,
+			&request.ExpiresAt,
+			&accessGrantedAt,
+			&accessExpiresAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+		if accessGrantedAt.Valid {
+			request.AccessGrantedAt = accessGrantedAt.Time
+		}
+		if accessExpiresAt.Valid {
+			request.AccessExpiresAt = accessExpiresAt.Time
+		}
+		requests = append(requests, request)
+	}
+	return requests, nil
+}
+
+func (r *UserRepository) GetPatientIDByUserID(userID int) (int, error) {
+	var patientID int
+	err := r.db.QueryRow("SELECT patient_id FROM patient WHERE user_id = $1", userID).Scan(&patientID)
+	return patientID, err
+}
+
 //func (r *BookRepository) UpdateBook(book *models.Book) error {
 //	_, err := r.db.Exec("UPDATE books SET title = $1, author = $2 WHERE id = $3", book.Title, book.Author, book.ID)
 //	return err
