@@ -15,9 +15,8 @@ type User struct {
 	Password          string `json:"password"`
 	PasswordChanged   bool   `json:"password_changed"`
 	Gender            string `json:"gender"`
+	Photo             []byte `json:"photo"`
 }
-
-// ... existing code ...
 
 type DetectResponse struct {
 	HasFace   bool   `json:"has_face"`
@@ -174,4 +173,25 @@ type RecordWithDetails struct {
 	DoctorSpeciality string `json:"doctor_specialization"`
 	PatientFullName  string `json:"patient_full_name"`
 	PatientIIN       string `json:"patient_iin"`
+}
+
+type AccessRequest struct {
+	ID              int       `json:"id"`
+	DoctorID        int       `json:"doctor_id"`
+	PatientID       int       `json:"patient_id"`
+	Status          string    `json:"status"`
+	CreatedAt       time.Time `json:"created_at"`
+	ExpiresAt       time.Time `json:"expires_at"`
+	AccessGrantedAt time.Time `json:"access_granted_at,omitempty"`
+	AccessExpiresAt time.Time `json:"access_expires_at,omitempty"`
+}
+
+type CreateAccessRequestRequest struct {
+	PatientIIN string `json:"patient_iin" binding:"required"`
+}
+
+type AccessRequestResponse struct {
+	RequestID int       `json:"request_id"`
+	Status    string    `json:"status"`
+	ExpiresAt time.Time `json:"expires_at"`
 }

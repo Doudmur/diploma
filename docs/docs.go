@@ -15,6 +15,74 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/access/request": {
+            "post": {
+                "description": "Create a new access request for a patient by IIN (doctor only)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "access"
+                ],
+                "summary": "Create a new access request",
+                "parameters": [
+                    {
+                        "description": "Access Request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.CreateAccessRequestRequest"
+                        }
+                    },
+                    {
+                        "type": "string",
+                        "description": "Bearer",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/models.AccessRequestResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/appointments": {
             "get": {
                 "description": "Fetch appointments for the authenticated doctor or patient",
@@ -996,6 +1064,20 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "models.AccessRequestResponse": {
+            "type": "object",
+            "properties": {
+                "expires_at": {
+                    "type": "string"
+                },
+                "request_id": {
+                    "type": "integer"
+                },
+                "status": {
+                    "type": "string"
+                }
+            }
+        },
         "models.Appointment": {
             "type": "object",
             "properties": {
@@ -1051,6 +1133,17 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "verify_password": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.CreateAccessRequestRequest": {
+            "type": "object",
+            "required": [
+                "patient_iin"
+            ],
+            "properties": {
+                "patient_iin": {
                     "type": "string"
                 }
             }

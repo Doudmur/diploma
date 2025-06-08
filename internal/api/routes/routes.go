@@ -83,6 +83,13 @@ func SetupRouter() *gin.Engine {
 			appointmentsGroup.GET("/", appointmentHandler.GetAppointments)
 		}
 
+		// Access routes
+		accessGroup := v1.Group("/access")
+		accessGroup.Use(auth.AuthMiddleware())
+		{
+			accessGroup.POST("/request", userHandler.CreateAccessRequest)
+		}
+
 	}
 
 	return router

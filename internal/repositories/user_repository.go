@@ -49,7 +49,7 @@ func (r *UserRepository) GetUserByIin(iin string) (*models.User, error) {
 
 	row := r.db.QueryRow("SELECT * FROM public.user WHERE iin=$1", iin)
 	var user models.User
-	if err := row.Scan(&user.UserId, &user.FirstName, &user.LastName, &user.Email, &user.PhoneNumber, &user.Iin, &user.Role, &user.BiometricDataHash, &user.CreatedAt, &user.Password, &user.PasswordChanged, &user.Gender); err != nil {
+	if err := row.Scan(&user.UserId, &user.FirstName, &user.LastName, &user.Email, &user.PhoneNumber, &user.Iin, &user.Role, &user.BiometricDataHash, &user.CreatedAt, &user.Password, &user.PasswordChanged, &user.Gender, &user.Photo); err != nil {
 		return nil, err
 	}
 	return &user, nil
@@ -279,6 +279,47 @@ func (r *UserRepository) GetPatientByUserID(userID int) (*models.Patient, error)
 func (r *UserRepository) UpdateUserPhoto(userID int, photo []byte) error {
 	_, err := r.db.Exec("UPDATE public.user SET photo = $1 WHERE user_id = $2", photo, userID)
 	return err
+}
+
+func (r *UserRepository) CreateAccessRequest(doctorID int, patientIIN string) (*models.AccessRequest, error) {
+	// Get patient ID from IIN
+	var patientID int
+	err := r.db.QueryRow(`
+		SELECT p.patient_id 
+		FROM patient p 
+		JOIN "user" u ON p.user_id = u.user_id 
+		WHERE u.iin = $1
+	`, patientIIN).Scan(&patientID)
+	if err != nil {
+		return nil, fmt.Errorf("patient not found: %v", err)
+	}
+
+	// Create access request with 5-minute expiration
+	expiresAt := time.Now().Add(5 * time.Minute)
+	var request models.AccessRequest
+	err = r.db.QueryRow(`
+		INSERT INTO access_requests (doctor_id, patient_id, status, created_at, expires_at)
+		VALUES ($1, $2, 'pending', CURRENT_TIMESTAMP, $3)
+		RETURNING id, doctor_id, patient_id, status, created_at, expires_at
+	`, doctorID, patientID, expiresAt).Scan(
+		&request.ID,
+		&request.DoctorID,
+		&request.PatientID,
+		&request.Status,
+		&request.CreatedAt,
+		&request.ExpiresAt,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return &request, nil
+}
+
+func (r *UserRepository) GetDoctorIDByUserID(userID int) (int, error) {
+	var doctorID int
+	err := r.db.QueryRow("SELECT doctor_id FROM doctor WHERE user_id = $1", userID).Scan(&doctorID)
+	return doctorID, err
 }
 
 //func (r *BookRepository) UpdateBook(book *models.Book) error {

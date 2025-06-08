@@ -1,5 +1,14 @@
 basePath: /api/v1
 definitions:
+  models.AccessRequestResponse:
+    properties:
+      expires_at:
+        type: string
+      request_id:
+        type: integer
+      status:
+        type: string
+    type: object
   models.Appointment:
     properties:
       date:
@@ -38,6 +47,13 @@ definitions:
         type: string
       verify_password:
         type: string
+    type: object
+  models.CreateAccessRequestRequest:
+    properties:
+      patient_iin:
+        type: string
+    required:
+    - patient_iin
     type: object
   models.Doctor:
     properties:
@@ -231,6 +247,51 @@ info:
   title: DiplomaAPI
   version: "1.0"
 paths:
+  /access/request:
+    post:
+      consumes:
+      - application/json
+      description: Create a new access request for a patient by IIN (doctor only)
+      parameters:
+      - description: Access Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.CreateAccessRequestRequest'
+      - description: Bearer
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.AccessRequestResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Create a new access request
+      tags:
+      - access
   /appointments:
     get:
       description: Fetch appointments for the authenticated doctor or patient
